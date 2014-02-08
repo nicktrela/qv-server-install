@@ -76,7 +76,7 @@ install_required_packages() {
 
 install_quota(){
 echo -e "[\033[33m*\033[0m] Installing and configuring Quota"
-yum install quota >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing Quota"
+yum install quota -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing Quota"
 sed -i -e 's/ext4/ext4    usrjquota=aquota.user,grpjquota=aquota.group,jqfmt=vfsv0/' /etc/fstab >> $LOG 2>&1 # is this correct?
 echo -e "[\033[33m*\033[0m] Remounting..."
 mount -o remount / >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error remounting"
@@ -93,7 +93,7 @@ install_ntpd() {
 
 install_apache_phpMyAdmin(){
 echo -e "[\033[33m*\033[0m] Installing Apache, MySQL and phpMyAdmin..."
-yum install ntp httpd mod_ssl php php-mysql php-mbstring phpmyadmin >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
+yum install ntp httpd mod_ssl php php-mysql php-mbstring phpmyadmin -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
 }
 
 disable_fw() {
@@ -109,7 +109,12 @@ disable_selinux() {
   setenforce 0 >> $LOG 2>&1
 }
 
-
+install_atop_htop(){
+  echo -e "[\033[33m*\033[0m] Installing atop"
+  yum install atop -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing atop"
+  echo -e "[\033[33m*\033[0m] Installing htop"
+  yum install htop -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing htop"
+}
 install_mysql() {
   echo -e "[\033[33m*\033[0m] Installing MYSQL Server"
   yum install mysql mysql-server -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
@@ -152,18 +157,6 @@ install_mysql() {
   " >> $LOG)
 
   echo "$SECURE_MYSQL" >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error configuring MySQL"
-  
-  echo -e "[\033[33m*\033[0m] Enabling connections from remote hosts"  
-  sed -i "/[[:<:]]<Directory "/usr/share/phpmyadmin">[[:>:]]/s/^/#/g" /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf"
-  sed -i "/[[:<:]]Order Deny,Allow[[:>:]]/s/^/#/g" /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf"
-  sed -i "/[[:<:]]Deny from all[[:>:]]/s/^/#/g" /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf"
-  sed -i "/[[:<:]]</Directory>[[:>:]]/s/^/#/g" /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf"
-  echo -e "[\033[33m*\033[0m] Changing authentication type from 'cookie' to 'http'"
-  sed -i -e 's/cookie/http/g' /usr/share/phpmyadmin/config.inc.php >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing config.inc.php"
-  
-  echo -e "[\033[33m*\033[0m] Starting Apache..."
-  chkconfig --levels 235 httpd on >> $LOG 2>&1
-  /etc/init.d/httpd start >> $LOG 2>&1
 }
   
 install_dovecot() {
@@ -192,7 +185,7 @@ install_getmail() {
 
 install_modphp(){
   echo -e "[\033[33m*\033[0m] Installing Apache2 With mod_php, mod_fcgi/PHP5, And suPHP"
-  yum install php php-devel php-gd php-imap php-ldap php-mysql php-odbc php-pear php-xml php-xmlrpc php-pecl-apc php-mbstring php-mcrypt php-mssql php-snmp php-soap php-tidy curl curl-devel perl-libwww-perl ImageMagick libxml2 libxml2-devel mod_fcgid php-cli httpd-devel >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
+  yum install php php-devel php-gd php-imap php-ldap php-mysql php-odbc php-pear php-xml php-xmlrpc php-pecl-apc php-mbstring php-mcrypt php-mssql php-snmp php-soap php-tidy curl curl-devel perl-libwww-perl ImageMagick libxml2 libxml2-devel mod_fcgid php-cli httpd-devel -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
   sed -i 's/; cgi.fix_pathinfo=1/cgi.fix_pathinfo=1/' /etc/php.ini >> $LOG 2>&1 # is this right
   cd /tmp >> $LOG 2>&1
   echo -e "[\033[33m*\033[0m] Getting suPHP"
@@ -250,25 +243,25 @@ EOF
 
 
 install_pma() {
-  echo -e "[\033[33m*\033[0m] Setting PHPmyAdmin"
+  echo -e "[\033[33m*\033[0m] Configuring PHPmyAdmin"
   yum install phpmyadmin -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
   sed -i -e "s/$cfg['Servers'][$i]['auth_type'] = 'cookie';/$cfg['Servers'][$i]['auth_type'] = 'http';/" /usr/share/phpmyadmin/config.inc.php >> $LOG 2>&1
   echo -e "[\033[33m*\033[0m] Enabling connections from remote hosts"  
-  sed -i "/[[:<:]]<Directory "/usr/share/phpmyadmin">[[:>:]]/s/^/#/g" /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf"
-  sed -i "/[[:<:]]Order Deny,Allow[[:>:]]/s/^/#/g" /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf"
-  sed -i "/[[:<:]]Deny from all[[:>:]]/s/^/#/g" /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf"
+  sed -i "/[[:<:]]<Directory[[:>:]]/s/^/#/g" /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf"
+  sed -i "/[[:<:]]Order[[:>:]]/s/^/#/g" /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf"
+  sed -i "/[[:<:]]Deny[[:>:]]/s/^/#/g" /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf"
   sed -i "/[[:<:]]</Directory>[[:>:]]/s/^/#/g" /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf"
   echo -e "[\033[33m*\033[0m] Starting Apache..."
   chkconfig --levels 235 httpd on >> $LOG 2>&1
-  /etc/init.d/httpd start >> $LOG 2>&1
+  /etc/init.d/httpd start >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error starting Apache"
   }
 
 install_ftpd() {
-  echo -e "[\033[33m*\033[0m] Setting PureFTPD"
+  echo -e "[\033[33m*\033[0m] Installing PureFTPD"
   yum install pure-ftpd -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
   chkconfig --levels 235 pure-ftpd on >> $LOG 2>&1
   /etc/init.d/pure-ftpd start >> $LOG 2>&1
-  yum install openssl >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
+  yum install openssl -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
   sed -re 'TLS s/^#//' /etc/pure-ftpd/pure-ftpd.conf >> $LOG 2>&1 # is this right??
   echo -e "[\033[33m*\033[0m] Generating SSL Certificate"
   mkdir -p /etc/ssl/private/ >> $LOG 2>&1
@@ -283,7 +276,7 @@ install_bind() {
   echo -e "[\033[33m*\033[0m] Installing BIND"
   yum install bind bind-utils -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
   sed -re 'ROOTDIR=/var/named/chroot s/^#//' /etc/sysconfig/named >> $LOG 2>&1 # is this right??
-  cp /etc/named.conf /etc/named.conf_bak
+  cp /etc/named.conf /etc/named.conf_bak >> $LOG 2>&1
   cat <<EOF > /etc/named.conf
   //
   // named.conf
@@ -320,14 +313,14 @@ install_bind() {
 EOF
 
   touch /etc/named.conf.local >> $LOG 2>&1
-
+  echo -e "[\033[33m*\033[0m] Generating key..."
   chkconfig --levels 235 named on >> $LOG 2>&1
   /etc/init.d/named start >> $LOG 2>&1
 }
 
 install_python(){
-  echo -e "[\033[33m*\033[0m] Installing Python"
-  yum install mod_python >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
+  echo -e "[\033[33m*\033[0m] Installing Python..."
+  yum install mod_python -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
   echo -e "[\033[33m*\033[0m] Restarting Apache"
   /etc/init.d/httpd restart >> $LOG 2>&1
 }
@@ -341,16 +334,15 @@ install_awstat() {
 
 install_jailkit() {
   echo -e "[\033[33m*\033[0m] Setting Jailkit"
-  #Jailkit
-  cd /tmp
-  wget http://olivier.sessink.nl/jailkit/jailkit-2.15.tar.gz
-  tar xvfz jailkit-2.15.tar.gz
-  cd jailkit-2.15
-  ./configure
-  make
-  make install
-  cd .. 
-  rm -rf jailkit-2.15*
+  cd /tmp >> $LOG 2>&1
+  wget http://olivier.sessink.nl/jailkit/jailkit-2.16.tar.gz >> $LOG 2>&1
+  tar xvfz jailkit-2.16.tar.gz >> $LOG 2>&1
+  cd jailkit-2.16 >> $LOG 2>&1
+  ./configure >> $LOG 2>&1
+  make >> $LOG 2>&1
+  make install >> $LOG 2>&1
+  cd ..  >> $LOG 2>&1
+  rm -rf jailkit-2.16* >> $LOG 2>&1
 }
 
 install_fail2ban() {
@@ -366,7 +358,7 @@ install_fail2ban() {
 
 install_squirrelmail(){
   echo -e "[\033[33m*\033[0m] Installing SquirrelMail"
-  yum install squirrelmail >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
+  yum install squirrelmail -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
   echo -e "[\033[33m*\033[0m] Restarting Apache"
   /etc/init.d/httpd restart >> $LOG 2>&1
   sed -i '/$default_folder_prefix/d' /etc/squirrelmail/config_local.php
@@ -375,19 +367,19 @@ install_squirrelmail(){
 
 install_cyrus(){
   echo -e "[\033[33m*\033[0m] Installing Cyrus"
-  install cyrus-sasl - yum install cyrus-sasl* >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
-  yum install perl-DateTime-Format* >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
+  yum install cyrus-sasl* -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
+  yum install perl-DateTime-Format* -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
 }
 install_ruby(){
   echo -e "[\033[33m*\033[0m] Installing Ruby"
-  yum install httpd-devel ruby ruby-devel >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing Ruby"
+  yum install httpd-devel ruby ruby-devel -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing Ruby"
   cd /tmp $LOG 2>&1
-  wget http://fossies.org/unix/www/apache_httpd_modules/mod_ruby-1.3.0.tar.gz $LOG 2>&1
-  tar zxvf mod_ruby-1.3.0.tar.gz $LOG 2>&1
-  cd mod_ruby-1.3.0/ $LOG 2>&1
-  ./configure.rb --with-apr-includes=/usr/include/apr-1 $LOG 2>&1
-  make $LOG 2>&1
-  make install $LOG 2>&1
+  wget http://fossies.org/unix/www/apache_httpd_modules/mod_ruby-1.3.0.tar.gz >> $LOG 2>&1
+  tar zxvf mod_ruby-1.3.0.tar.gz >> $LOG 2>&1
+  cd mod_ruby-1.3.0/ >> $LOG 2>&1
+  ./configure.rb --with-apr-includes=/usr/include/apr-1 >> $LOG 2>&1
+  make >> $LOG 2>&1
+  make install >> $LOG 2>&1
   
 cat <<EOF > /etc/httpd/conf.d/ruby.conf
   LoadModule ruby_module modules/mod_ruby.so
@@ -395,17 +387,18 @@ cat <<EOF > /etc/httpd/conf.d/ruby.conf
 
 EOF
   echo -e "[\033[33m*\033[0m] Restarting Apache"
-  /etc/init.d/httpd restart
+  /etc/init.d/httpd restart >> $LOG 2>&1
 }
 
 configure_webdav(){
-  sed -i -e "s/; LoadModule auth_digest_module modules/mod_auth_digest.so/LoadModule auth_digest_module modules/mod_auth_digest.so/" /etc/httpd/conf/httpd.conf $LOG 2>&1
-  sed -i -e "s/; LoadModule dav_module modules/mod_dav.so/LoadModule dav_module modules/mod_dav.so/" /etc/httpd/conf/httpd.conf $LOG 2>&1
-  sed -i -e "s/; LoadModule dav_fs_module modules/mod_dav_fs.so/LoadModule dav_fs_module modules/mod_dav_fs.so/" /etc/httpd/conf/httpd.conf $LOG 2>&1
-}
+  sed -i -e "s,#\(; LoadModule auth_digest_module modules/mod_auth_digest.so\),\1,g" /etc/httpd/conf/httpd.conf >> $LOG 2>&1
+  sed -i -e "s,#\(; LoadModule dav_module modules/mod_dav.so\),\1,g" /etc/httpd/conf/httpd.conf >> $LOG 2>&1
+  sed -i -e "s,#\(; LoadModule dav_fs_module modules/mod_dav_fs.so\),\1,g" /etc/httpd/conf/httpd.conf >> $LOG 2>&1
+  }
 
 install_unzip(){
-yum install unzip bzip2 unrar perl-DBD-mysql
+  echo -e "[\033[33m*\033[0m] Installing unzip, bzip2, unrar, perl DBD"
+  yum install unzip bzip2 unrar perl-DBD-mysql -y >> $LOG 2>&1
 }
 
 
@@ -418,6 +411,7 @@ install_quota
 install_apache_phpMyAdmin
 install_dovecot
 install_postfix
+install_atop_htop
 install_pma
 install_getmail
 install_mysql
@@ -426,10 +420,10 @@ install_modphp
 install_ruby
 install_python
 install_ftpd
-install_bind
 install_awstat
 install_jailkit
 install_fail2ban
+install_bind
 install_rkhunter
 install_squirrelmail
 
