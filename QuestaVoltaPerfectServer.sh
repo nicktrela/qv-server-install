@@ -63,7 +63,7 @@ configure_repo() {
 }
 
 update_system() {
-  echo -e "[\033[33m*\033[0m] Updating full system (it can take some minutes...)"
+  echo -e "[\033[33m*\033[0m] Updating full system (This could take a while...)"
   yum update -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error in yum update"
 }
 
@@ -105,7 +105,7 @@ disable_fw() {
 
 disable_selinux() {
   echo -e "[\033[33m*\033[0m] Disabling SELinux"
-  sed -i -e 's/SELINUX=enforcing/SELINUX=disabled' /etc/selinux/config >> $LOG 2>&1
+  sed -i -e 's/SELINUX=enforcing/SELINUX=disabled' /etc/selinux/config >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error disabling SELinux"
   setenforce 0 >> $LOG 2>&1
 }
 
@@ -186,7 +186,7 @@ install_getmail() {
 install_modphp(){
   echo -e "[\033[33m*\033[0m] Installing Apache2 With mod_php, mod_fcgi/PHP5, And suPHP"
   yum install php php-devel php-gd php-imap php-ldap php-mysql php-odbc php-pear php-xml php-xmlrpc php-pecl-apc php-mbstring php-mcrypt php-mssql php-snmp php-soap php-tidy curl curl-devel perl-libwww-perl ImageMagick libxml2 libxml2-devel mod_fcgid php-cli httpd-devel -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
-  sed -i 's/; cgi.fix_pathinfo=1/cgi.fix_pathinfo=1/' /etc/php.ini >> $LOG 2>&1 # is this right
+  sed -i 's/; cgi.fix_pathinfo=1/cgi.fix_pathinfo=1/' /etc/php.ini >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing php.ini"
   cd /tmp >> $LOG 2>&1
   echo -e "[\033[33m*\033[0m] Getting suPHP"
   wget http://suphp.org/download/suphp-0.7.1.tar.gz >> $LOG 2>&1
@@ -244,14 +244,14 @@ EOF
 
 install_pma() {
   echo -e "[\033[33m*\033[0m] Configuring PHPmyAdmin"
-  yum install phpmyadmin -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
-  sed -i -e "s/$cfg['Servers'][$i]['auth_type'] = 'cookie';/$cfg['Servers'][$i]['auth_type'] = 'http';/" /usr/share/phpmyadmin/config.inc.php >> $LOG 2>&1
+  yum install phpmyadmin -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing phpmyadmin"
+  sed -i -e "s/$cfg['Servers'][$i]['auth_type'] = 'cookie';/$cfg['Servers'][$i]['auth_type'] = 'http';/" /usr/share/phpmyadmin/config.inc.php >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing config.inc.php"
   echo -e "[\033[33m*\033[0m] Enabling connections from remote hosts"  
-  sed -e '/,(<Directory "/usr/share/phpmyadmin">),/ s/^#*/#/' -i /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf"
+  sed -e '/<Directory/ s/^#*/#/' -i /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf"
   sed -e '/Order Deny,Allow/ s/^#*/#/' -i /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf"
   sed -e '/Deny from all/ s/^#*/#/' -i /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf"
   sed -e '/Allow from 127.0.0.1/ s/^#*/#/' -i /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf"
-  sed -e '/,(</Directory>),/ s/^#*/#/' -i /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf"
+  sed -e '/Directory/ s/^#*/#/' -i /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf"
   echo -e "[\033[33m*\033[0m] Starting Apache..."
   chkconfig --levels 235 httpd on >> $LOG 2>&1
   /etc/init.d/httpd start >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error starting Apache"
@@ -334,7 +334,7 @@ install_awstat() {
 }
 
 install_jailkit() {
-  echo -e "[\033[33m*\033[0m] Setting Jailkit"
+  echo -e "[\033[33m*\033[0m] Installing Jailkit"
   cd /tmp >> $LOG 2>&1
   wget http://olivier.sessink.nl/jailkit/jailkit-2.16.tar.gz >> $LOG 2>&1
   tar xvfz jailkit-2.16.tar.gz >> $LOG 2>&1
@@ -349,7 +349,7 @@ install_jailkit() {
 install_fail2ban() {
   echo -e "[\033[33m*\033[0m] Installing fail2ban & RootkitHunter"
   yum install fail2ban -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
-  sed -re 'ROOTDIR=/var/named/chroot s/^#//' /etc/sysconfig/named >> $LOG 2>&1 # is this right??
+  sed -re 'ROOTDIR=/var/named/chroot s/^#//' /etc/sysconfig/named ||  echo -e "[\033[31mX\033[0m] Error editing /etc/sysconfig/named"
   chkconfig --levels 235 fail2ban on >> $LOG 2>&1
   echo -e "[\033[33m*\033[0m] Starting fail2ban"
   /etc/init.d/fail2ban start >> $LOG 2>&1
@@ -392,9 +392,9 @@ EOF
 }
 
 configure_webdav(){
-  sed -i -e "s,#\(; LoadModule auth_digest_module modules/mod_auth_digest.so\),\1,g" /etc/httpd/conf/httpd.conf >> $LOG 2>&1
-  sed -i -e "s,#\(; LoadModule dav_module modules/mod_dav.so\),\1,g" /etc/httpd/conf/httpd.conf >> $LOG 2>&1
-  sed -i -e "s,#\(; LoadModule dav_fs_module modules/mod_dav_fs.so\),\1,g" /etc/httpd/conf/httpd.conf >> $LOG 2>&1
+  sed -i -e "s,#\(; LoadModule auth_digest_module modules/mod_auth_digest.so\),\1,g" /etc/httpd/conf/httpd.conf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf"
+  sed -i -e "s,#\(; LoadModule dav_module modules/mod_dav.so\),\1,g" /etc/httpd/conf/httpd.conf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf"
+  sed -i -e "s,#\(; LoadModule dav_fs_module modules/mod_dav_fs.so\),\1,g" /etc/httpd/conf/httpd.conf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf"
   }
 
 install_unzip(){
