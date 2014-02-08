@@ -252,7 +252,15 @@ EOF
 install_pma() {
   echo -e "[\033[33m*\033[0m] Setting PHPmyAdmin"
   yum install phpmyadmin -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
-  sed -i -e "s/$cfg['Servers'][$i]['auth_type'] = 'cookie';/$cfg['Servers'][$i]['auth_type'] = 'http';/" /usr/share/phpmyadmin/config.inc.php 2>&1
+  sed -i -e "s/$cfg['Servers'][$i]['auth_type'] = 'cookie';/$cfg['Servers'][$i]['auth_type'] = 'http';/" /usr/share/phpmyadmin/config.inc.php >> $LOG 2>&1
+  echo -e "[\033[33m*\033[0m] Enabling connections from remote hosts"  
+  sed -i "/[[:<:]]<Directory "/usr/share/phpmyadmin">[[:>:]]/s/^/#/g" /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf"
+  sed -i "/[[:<:]]Order Deny,Allow[[:>:]]/s/^/#/g" /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf"
+  sed -i "/[[:<:]]Deny from all[[:>:]]/s/^/#/g" /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf"
+  sed -i "/[[:<:]]</Directory>[[:>:]]/s/^/#/g" /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf"
+  echo -e "[\033[33m*\033[0m] Starting Apache..."
+  chkconfig --levels 235 httpd on >> $LOG 2>&1
+  /etc/init.d/httpd start >> $LOG 2>&1
   }
 
 install_ftpd() {
@@ -370,7 +378,37 @@ install_cyrus(){
   install cyrus-sasl - yum install cyrus-sasl* >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
   yum install perl-DateTime-Format* >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
 }
- 
+install_ruby(){
+  echo -e "[\033[33m*\033[0m] Installing Ruby"
+  yum install httpd-devel ruby ruby-devel >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing Ruby"
+  cd /tmp $LOG 2>&1
+  wget http://fossies.org/unix/www/apache_httpd_modules/mod_ruby-1.3.0.tar.gz $LOG 2>&1
+  tar zxvf mod_ruby-1.3.0.tar.gz $LOG 2>&1
+  cd mod_ruby-1.3.0/ $LOG 2>&1
+  ./configure.rb --with-apr-includes=/usr/include/apr-1 $LOG 2>&1
+  make $LOG 2>&1
+  make install $LOG 2>&1
+  
+cat <<EOF > /etc/httpd/conf.d/ruby.conf
+  LoadModule ruby_module modules/mod_ruby.so
+  RubyAddPath /1.8
+
+EOF
+  echo -e "[\033[33m*\033[0m] Restarting Apache"
+  /etc/init.d/httpd restart
+}
+
+configure_webdav(){
+  sed -i -e "s/; LoadModule auth_digest_module modules/mod_auth_digest.so/LoadModule auth_digest_module modules/mod_auth_digest.so/" /etc/httpd/conf/httpd.conf $LOG 2>&1
+  sed -i -e "s/; LoadModule dav_module modules/mod_dav.so/LoadModule dav_module modules/mod_dav.so/" /etc/httpd/conf/httpd.conf $LOG 2>&1
+  sed -i -e "s/; LoadModule dav_fs_module modules/mod_dav_fs.so/LoadModule dav_fs_module modules/mod_dav_fs.so/" /etc/httpd/conf/httpd.conf $LOG 2>&1
+}
+
+install_unzip(){
+yum install unzip bzip2 unrar perl-DBD-mysql
+}
+
+
 disable_fw
 disable_selinux
 configure_repo
@@ -380,17 +418,20 @@ install_quota
 install_apache_phpMyAdmin
 install_dovecot
 install_postfix
+install_pma
 install_getmail
 install_mysql
+install_unzip
 install_modphp
-install_pma
-install_mailman
+install_ruby
+install_python
 install_ftpd
 install_bind
 install_awstat
 install_jailkit
 install_fail2ban
 install_rkhunter
+install_squirrelmail
 
 
 echo -e "[\033[33m*\033[0m] Setting up ISPConfig !"
