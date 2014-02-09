@@ -77,7 +77,7 @@ install_required_packages() {
 install_quota(){
 echo -e "[\033[33m*\033[0m] Installing and configuring Quota"
 yum install quota -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing Quota"
-sed -i -e 's/ext4/ext4    usrjquota=aquota.user,grpjquota=aquota.group,jqfmt=vfsv0/' /etc/fstab >> $LOG 2>&1 # is this correct?
+sed '0,/ext4/s/ext4/ext4    defaults,usrjquota=aquota.user,grpjquota=aquota.group,jqfmt=vfsv0/' /etc/fstab >> $LOG 2>&1 # is this correct?
 echo -e "[\033[33m*\033[0m] Remounting..."
 mount -o remount / >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error remounting"
 echo -e "[\033[33m*\033[0m] Enabling Quota"
@@ -105,7 +105,7 @@ disable_fw() {
 
 disable_selinux() {
   echo -e "[\033[33m*\033[0m] Disabling SELinux"
-  sed -i -e 's/SELINUX=enforcing/SELINUX=disabled' /etc/selinux/config >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error disabling SELinux"
+  sed -i -e 's/SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error disabling SELinux"
   setenforce 0 >> $LOG 2>&1
 }
 
@@ -187,6 +187,7 @@ install_modphp(){
   echo -e "[\033[33m*\033[0m] Installing Apache2 With mod_php, mod_fcgi/PHP5, And suPHP"
   yum install php php-devel php-gd php-imap php-ldap php-mysql php-odbc php-pear php-xml php-xmlrpc php-pecl-apc php-mbstring php-mcrypt php-mssql php-snmp php-soap php-tidy curl curl-devel perl-libwww-perl ImageMagick libxml2 libxml2-devel mod_fcgid php-cli httpd-devel -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
   sed -i 's/; cgi.fix_pathinfo=1/cgi.fix_pathinfo=1/' /etc/php.ini >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing php.ini"
+  sed -i 's/;cgi.fix_pathinfo=1/cgi.fix_pathinfo=1/' /etc/php.ini >> $LOG 2>&1 
   cd /tmp >> $LOG 2>&1
   echo -e "[\033[33m*\033[0m] Getting suPHP"
   wget http://suphp.org/download/suphp-0.7.1.tar.gz >> $LOG 2>&1
@@ -263,7 +264,7 @@ install_ftpd() {
   chkconfig --levels 235 pure-ftpd on >> $LOG 2>&1
   /etc/init.d/pure-ftpd start >> $LOG 2>&1
   yum install openssl -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
-  sed -re 'TLS s/^#//' /etc/pure-ftpd/pure-ftpd.conf >> $LOG 2>&1 # is this right??
+  sed -i 's/# TLS                      1/TLS    1/' /etc/pure-ftpd/pure-ftpd.conf >> $LOG 2>&1 # is this right??
   echo -e "[\033[33m*\033[0m] Generating SSL Certificate"
   mkdir -p /etc/ssl/private/ >> $LOG 2>&1
   openssl req -x509 -nodes -days 7300 -newkey rsa:2048 -keyout /etc/ssl/private/pure-ftpd.pem -out /etc/ssl/private/pure-ftpd.pem
@@ -349,7 +350,7 @@ install_jailkit() {
 install_fail2ban() {
   echo -e "[\033[33m*\033[0m] Installing fail2ban & RootkitHunter"
   yum install fail2ban -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
-  sed -re 'ROOTDIR=/var/named/chroot s/^#//' /etc/sysconfig/named ||  echo -e "[\033[31mX\033[0m] Error editing /etc/sysconfig/named"
+  sed -i 's,logtarget = SYSLOG,logtarget = /var/log/fail2ban.log,' /etc/fail2ban/fail2ban.conf  >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/fail2ban/fail2ban.conf"
   chkconfig --levels 235 fail2ban on >> $LOG 2>&1
   echo -e "[\033[33m*\033[0m] Starting fail2ban"
   /etc/init.d/fail2ban start >> $LOG 2>&1
@@ -363,7 +364,15 @@ install_squirrelmail(){
   echo -e "[\033[33m*\033[0m] Restarting Apache"
   /etc/init.d/httpd restart >> $LOG 2>&1
   sed -i '/$default_folder_prefix/d' /etc/squirrelmail/config_local.php
-  echo -e "[\033[33m*\033[0m] Please configure SquirrelMail after installation is complete!"
+  echo "Please configure SquirrelMail! Commands are as follows:"
+  echo "Command >> D"
+  echo "Command >> dovecot"
+  echo "Press enter..."
+  echo "Command >> S"
+  echo "Command >> Q"
+  
+  echo "Starting SquirrelMail Config:"
+  /usr/share/squirrelmail/config/conf.pl
 }
 
 install_cyrus(){
@@ -392,9 +401,9 @@ EOF
 }
 
 configure_webdav(){
-  sed -i -e "s,#\(; LoadModule auth_digest_module modules/mod_auth_digest.so\),\1,g" /etc/httpd/conf/httpd.conf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf"
-  sed -i -e "s,#\(; LoadModule dav_module modules/mod_dav.so\),\1,g" /etc/httpd/conf/httpd.conf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf"
-  sed -i -e "s,#\(; LoadModule dav_fs_module modules/mod_dav_fs.so\),\1,g" /etc/httpd/conf/httpd.conf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf"
+  sed -i -e "s,#\(#LoadModule auth_digest_module modules/mod_auth_digest.so\),\1,g" /etc/httpd/conf/httpd.conf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf"
+  sed -i -e "s,#\(#LoadModule dav_module modules/mod_dav.so\),\1,g" /etc/httpd/conf/httpd.conf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf"
+  sed -i -e "s,#\(#LoadModule dav_fs_module modules/mod_dav_fs.so\),\1,g" /etc/httpd/conf/httpd.conf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf"
   }
 
 install_unzip(){
@@ -426,6 +435,7 @@ install_jailkit
 install_fail2ban
 install_bind
 install_rkhunter
+configure_webdav
 install_squirrelmail
 
 
