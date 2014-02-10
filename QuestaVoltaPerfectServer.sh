@@ -370,7 +370,8 @@ install_squirrelmail(){
   echo "Press enter..."
   echo "Command >> S"
   echo "Command >> Q"
-  
+  echo "Enter to continue..."
+  read ready
   echo "Starting SquirrelMail Config:"
   /usr/share/squirrelmail/config/conf.pl
 }
@@ -433,6 +434,7 @@ install_ftpd
 install_awstat
 install_jailkit
 install_fail2ban
+install_cyrus
 install_bind
 install_rkhunter
 configure_webdav
