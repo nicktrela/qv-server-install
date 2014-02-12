@@ -32,6 +32,7 @@ else echo -e "\033[31mStarting installation...\033[0m"
 fi
 
 
+
 LOG=/root/log_script.log
 echo "NOZEROCONF=yes" >> /etc/sysconfig/network
 
@@ -188,6 +189,7 @@ install_modphp(){
   yum install php php-devel php-gd php-imap php-ldap php-mysql php-odbc php-pear php-xml php-xmlrpc php-pecl-apc php-mbstring php-mcrypt php-mssql php-snmp php-soap php-tidy curl curl-devel perl-libwww-perl ImageMagick libxml2 libxml2-devel mod_fcgid php-cli httpd-devel -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
   sed -i 's/; cgi.fix_pathinfo=1/cgi.fix_pathinfo=1/' /etc/php.ini >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing php.ini"
   sed -i 's/;cgi.fix_pathinfo=1/cgi.fix_pathinfo=1/' /etc/php.ini >> $LOG 2>&1 
+  sed -i 's/error_reporting = E_ALL \&\ ~E_DEPRECATED/error_reporting = E_ALL \&\ ~E_NOTICE/' /etc/php.ini >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing php.ini"
   cd /tmp >> $LOG 2>&1
   echo -e "[\033[33m*\033[0m] Getting suPHP"
   wget http://suphp.org/download/suphp-0.7.1.tar.gz >> $LOG 2>&1
