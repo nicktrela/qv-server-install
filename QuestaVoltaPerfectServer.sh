@@ -19,17 +19,24 @@ echo "                                      |_|  for auto hosting simply & easil
 echo ""
 echo "\"tail -f log_script.log\" for an install log."
 echo ""
-echo -e "\033[31m             ---Server setup won't be complete until you edit /etc/hosts---\033[0m"
-echo ""
+echo "Enter the IP Address of the Server:"
+read ipaddress	
+echo "Enter the Hostname of the Server:"
+read hostname
+rm /etc/hosts
+ cat <<EOF >> /etc/hosts
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+$ipaddress   $hostname.idthq.com     $hostname
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+EOF
+
 echo -e "\033[31mThis script will set up a Questa Volta Optimized Web Server. Are you sure you want to continue?\033[0m"
-
 read areyousure
-
-
 if [ $areyousure != "YES" ]
 then exit 1
 else echo -e "\033[31mStarting installation...\033[0m"
 fi
+
 
 
 LOG=/root/log_script.log
@@ -171,9 +178,7 @@ install_postfix() {
   yum install postfix -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
   chkconfig --levels 235 postfix on >> $LOG 2>&1
   /etc/init.d/mysqld start >> $LOG 2>&1
-  chkconfig --levels 235 sendmail off >> $LOG 2>&1
   chkconfig --levels 235 postfix on >> $LOG 2>&1
-  /etc/init.d/sendmail stop >> $LOG 2>&1
   /etc/init.d/postfix restart >> $LOG 2>&1
 }
   
@@ -188,6 +193,7 @@ install_modphp(){
   yum install php php-devel php-gd php-imap php-ldap php-mysql php-odbc php-pear php-xml php-xmlrpc php-pecl-apc php-mbstring php-mcrypt php-mssql php-snmp php-soap php-tidy curl curl-devel perl-libwww-perl ImageMagick libxml2 libxml2-devel mod_fcgid php-cli httpd-devel -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
   sed -i 's/; cgi.fix_pathinfo=1/cgi.fix_pathinfo=1/' /etc/php.ini >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing php.ini"
   sed -i 's/;cgi.fix_pathinfo=1/cgi.fix_pathinfo=1/' /etc/php.ini >> $LOG 2>&1 
+  sed -i 's/error_reporting = E_ALL \&\ ~E_DEPRECATED/error_reporting = E_ALL \&\ ~E_NOTICE/' /etc/php.ini >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing php.ini"
   cd /tmp >> $LOG 2>&1
   echo -e "[\033[33m*\033[0m] Getting suPHP"
   wget http://suphp.org/download/suphp-0.7.1.tar.gz >> $LOG 2>&1
@@ -370,7 +376,11 @@ install_squirrelmail(){
   echo "Press enter..."
   echo "Command >> S"
   echo "Command >> Q"
+<<<<<<< HEAD
   echo "Ready to go?"
+=======
+  echo "Enter to continue..."
+>>>>>>> f5fa7cdb02a4aa46242979925ce8d385940f0274
   read ready
   echo "Starting SquirrelMail Config:"
   /usr/share/squirrelmail/config/conf.pl
@@ -419,13 +429,13 @@ configure_repo
 update_system
 install_required_packages
 install_quota
-install_apache_phpMyAdmin
 install_dovecot
+install_mysql
+install_apache_phpMyAdmin
 install_postfix
 install_atop_htop
 install_pma
 install_getmail
-install_mysql
 install_unzip
 install_modphp
 install_ruby
@@ -434,11 +444,10 @@ install_ftpd
 install_awstat
 install_jailkit
 install_fail2ban
+install_cyrus
 install_bind
-install_rkhunter
 configure_webdav
 install_squirrelmail
-
 
 echo -e "[\033[33m*\033[0m] Setting up ISPConfig !"
 #ISPConfig
@@ -446,4 +455,6 @@ cd /tmp
 wget http://www.ispconfig.org/downloads/ISPConfig-3-stable.tar.gz >> $LOG 2>&1
 tar xfz ISPConfig-3-stable.tar.gz >> $LOG 2>&1
 cd ispconfig3_install/install/
+
 php install.php
+
