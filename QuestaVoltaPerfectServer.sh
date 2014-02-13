@@ -19,13 +19,19 @@ echo "                                      |_|  for auto hosting simply & easil
 echo ""
 echo "\"tail -f log_script.log\" for an install log."
 echo ""
-echo -e "\033[31m             ---Server setup won't be complete until you edit /etc/hosts---\033[0m"
-echo ""
+echo "Enter the IP Address of the Server:"
+read ipaddress	
+echo "Enter the Hostname of the Server:"
+read hostname
+rm /etc/hosts
+ cat <<EOF >> /etc/hosts
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+$ipaddress   $hostname.idthq.com     $hostname
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+EOF
+
 echo -e "\033[31mThis script will set up a Questa Volta Optimized Web Server. Are you sure you want to continue?\033[0m"
-
 read areyousure
-
-
 if [ $areyousure != "YES" ]
 then exit 1
 else echo -e "\033[31mStarting installation...\033[0m"
@@ -172,9 +178,7 @@ install_postfix() {
   yum install postfix -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
   chkconfig --levels 235 postfix on >> $LOG 2>&1
   /etc/init.d/mysqld start >> $LOG 2>&1
-  chkconfig --levels 235 sendmail off >> $LOG 2>&1
   chkconfig --levels 235 postfix on >> $LOG 2>&1
-  /etc/init.d/sendmail stop >> $LOG 2>&1
   /etc/init.d/postfix restart >> $LOG 2>&1
 }
   
@@ -421,13 +425,13 @@ configure_repo
 update_system
 install_required_packages
 install_quota
-install_apache_phpMyAdmin
 install_dovecot
+install_mysql
+install_apache_phpMyAdmin
 install_postfix
 install_atop_htop
 install_pma
 install_getmail
-install_mysql
 install_unzip
 install_modphp
 install_ruby
@@ -438,10 +442,8 @@ install_jailkit
 install_fail2ban
 install_cyrus
 install_bind
-install_rkhunter
 configure_webdav
 install_squirrelmail
-
 
 echo -e "[\033[33m*\033[0m] Setting up ISPConfig !"
 #ISPConfig
@@ -449,4 +451,6 @@ cd /tmp
 wget http://www.ispconfig.org/downloads/ISPConfig-3-stable.tar.gz >> $LOG 2>&1
 tar xfz ISPConfig-3-stable.tar.gz >> $LOG 2>&1
 cd ispconfig3_install/install/
+
 php install.php
+
