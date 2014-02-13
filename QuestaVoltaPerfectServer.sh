@@ -370,7 +370,8 @@ install_squirrelmail(){
   echo "Press enter..."
   echo "Command >> S"
   echo "Command >> Q"
-  
+  echo "Ready to go?"
+  read ready
   echo "Starting SquirrelMail Config:"
   /usr/share/squirrelmail/config/conf.pl
 }
