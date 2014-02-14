@@ -252,7 +252,7 @@ EOF
 install_pma() {
   echo -e "[\033[33m*\033[0m] Configuring PHPmyAdmin"
   yum install phpmyadmin -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing phpmyadmin"
-  sed -i -e "s/$cfg['Servers'][$i]['auth_type'] = 'cookie';/$cfg['Servers'][$i]['auth_type'] = 'http';/" /usr/share/phpmyadmin/config.inc.php >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing config.inc.php"
+  sed -i -e "s/$cfg['Servers'][$i]['auth_type'] = 'cookie';/$cfg['Servers'][$i]['auth_type['Servers'][]['auth_type'] = 'http';/" /usr/share/phpmyadmin/config.inc.php >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing config.inc.php"
   echo -e "[\033[33m*\033[0m] Enabling connections from remote hosts"  
   sed -e '/<Directory/ s/^#*/#/' -i /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf"
   sed -e '/Order Deny,Allow/ s/^#*/#/' -i /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf"
