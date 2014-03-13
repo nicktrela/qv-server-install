@@ -253,8 +253,8 @@ install_pma() {
   echo -e "[\033[33m*\033[0m] Configuring PHPmyAdmin"
   yum install phpmyadmin -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing phpmyadmin"
   mv /usr/share/phpmyadmin/config.inc.php /usr/share/phpmyadmin/config.inc.php.bak >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Created config.inc.php backup at /usr/share/phpmyadmin/config.inc.php.bak"
-  cat <<EOF > /usr/share/phpmyadmin/config.inc.php
-	<?php
+  cat <<'EOF' > /usr/share/phpmyadmin/config.inc.php
+<?php
 /* vim: set expandtab sw=4 ts=4 sts=4: */
 /**
  * phpMyAdmin sample configuration, you can use it as base for
