@@ -366,7 +366,7 @@ install_bind() {
 	  statistics-file "/var/named/data/named_stats.txt";
 	  memstatistics-file "/var/named/data/named_mem_stats.txt";
 	  allow-query     { any; };
-	  recursion yes;
+	  recursion no; 
 	  };
   logging {
 	  channel default_debug {
@@ -386,8 +386,8 @@ EOF
 
   touch /etc/named.conf.local >> $LOG 2>&1
   echo -e "[\033[33m*\033[0m] Generating key..."
-  chkconfig --levels 235 named on >> $LOG 2>&1
-  /etc/init.d/named start >> $LOG 2>&1
+#   chkconfig --levels 235 named on >> $LOG 2>&1
+#   /etc/init.d/named start >> $LOG 2>&1
 }
 
 install_python(){
