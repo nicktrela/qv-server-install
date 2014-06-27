@@ -476,6 +476,41 @@ configure_webdav(){
   sed -i -e "s,#\(#LoadModule auth_digest_module modules/mod_auth_digest.so\),\1,g" /etc/httpd/conf/httpd.conf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf"
   sed -i -e "s,#\(#LoadModule dav_module modules/mod_dav.so\),\1,g" /etc/httpd/conf/httpd.conf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf"
   sed -i -e "s,#\(#LoadModule dav_fs_module modules/mod_dav_fs.so\),\1,g" /etc/httpd/conf/httpd.conf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf"
+#   sed -i 's/Timeout 60/Timeout 2/g' /etc/httpd/conf/httpd.conf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf"
+#   sed -i 's/MaxRequestsPerChild  4000/MaxRequestsPerChild  1000/g' /etc/httpd/conf/httpd.conf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf"
+#   service httpd restart >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error restarting httpd"
+#   sed -i 's/apc.shm_size=64M/apc.shm_size=128M/g' /etc/php.d/apc.ini >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/php.d/apc.ini"
+#   sed -i 's/apc.num_files_hint=1024/apc.num_files_hint=10024/g' /etc/php.d/apc.ini >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/php.d/apc.ini"
+#   sed -i 's/apc.user_entries_hint=4096/apc.user_entries_hint=40096/g' /etc/php.d/apc.ini >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/php.d/apc.ini"
+#   sed -i 's/apc.enable_cli=0/apc.enable_cli=1/g' /etc/php.d/apc.ini >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/php.d/apc.ini"
+#   sed -i 's/apc.enable_cli=0/apc.enable_cli=1/g' /etc/php.d/apc.ini >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/php.d/apc.ini"
+#   sed -i 's/apc.max_file_size=1M/apc.max_file_size=8M/g' /etc/php.d/apc.ini >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/php.d/apc.ini"
+#   sed -i 's/apc.stat=1/apc.stat=0/g' /etc/php.d/apc.ini >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/php.d/apc.ini"
+#   service httpd restart >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error restarting httpd"
+#   sed -i '/symbolic-links=0/a\
+#     query_cache_size = 128M\
+#     join_buffer_size = 4M\
+#     thread_cache_size = 8\
+#     table_cache = 256\
+#     tmp_table_size = 64M\
+#     max_heap_table_size = 64M\
+#     innodb_buffer_pool_size = 512M
+#   ' /etc/my.cnf
+  }
+
+install_unzip(){
+  echo -e "[\033[33m*\033[0m] Installing unzip, bzip2, unrar, perl DBD"
+  yum install unzip bzip2 unrar perl-DBD-mysql -y >> $LOG 2>&1
+}
+
+install_locate(){
+  echo -e "[\033[33m*\033[0m] Installing locate"
+  yum install locate -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing locate"
+  echo -e "[\033[33m*\033[0m] Updating db"
+  updatedb ||  echo -e "[\033[31mX\033[0m] Error updating db"
+}
+
+script_update_1(){
   sed -i 's/Timeout 60/Timeout 2/g' /etc/httpd/conf/httpd.conf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf"
   sed -i 's/MaxRequestsPerChild  4000/MaxRequestsPerChild  1000/g' /etc/httpd/conf/httpd.conf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf"
   service httpd restart >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error restarting httpd"
@@ -496,18 +531,8 @@ configure_webdav(){
     max_heap_table_size = 64M\
     innodb_buffer_pool_size = 512M
   ' /etc/my.cnf
-  }
-
-install_unzip(){
-  echo -e "[\033[33m*\033[0m] Installing unzip, bzip2, unrar, perl DBD"
-  yum install unzip bzip2 unrar perl-DBD-mysql -y >> $LOG 2>&1
-}
-
-install_locate(){
-  echo -e "[\033[33m*\033[0m] Installing locate"
-  yum install locate -y >> $LOG 2>&1
-  echo -e "[\033[33m*\033[0m] Updating db"
-  updatedb
+  echo -e "[\033[33m*\033[0m] Restarting mysql"
+  service mysqld restart 
 }
 
 disable_fw
@@ -535,6 +560,8 @@ install_cyrus
 install_bind
 configure_webdav
 install_squirrelmail
+script_update_1
+
 
 echo -e "[\033[33m*\033[0m] Setting up ISPConfig !"
 #ISPConfig
