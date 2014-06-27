@@ -449,8 +449,8 @@ install_squirrelmail(){
 
 install_cyrus(){
   echo -e "[\033[33m*\033[0m] Installing Cyrus"
-  yum install cyrus-sasl* -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
-  yum install perl-DateTime-Format* -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
+  yum install cyrus-sasl* -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing Cyrus"
+  yum install perl-DateTime-Format* -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing Cyrus"
 }
 install_ruby(){
   echo -e "[\033[33m*\033[0m] Installing Ruby"
