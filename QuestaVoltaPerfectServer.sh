@@ -636,6 +636,7 @@ install_squirrelmail(){
 
 	@include SM_PATH . 'config/config_local.php';
 EOF
+
 #####################
 # Old manual config #
 #####################
@@ -690,7 +691,6 @@ install_unzip(){
   yum install unzip bzip2 unrar perl-DBD-mysql -y >> $LOG 2>&1
 }
 
-<<<<<<< HEAD
 send_credentials(){
 $to = 'bob@example.com';
 
@@ -721,6 +721,8 @@ $message .= "<tr><td><strong>NEW Content:</strong> </td><td>" . htmlentities($_P
 $message .= "</table>";
 $message .= "</body></html>";
 =======
+}
+
 install_locate(){
   echo -e "[\033[33m*\033[0m] Installing locate"
   yum install mlocate -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing locate"
@@ -751,7 +753,58 @@ script_update_1(){
   ' /etc/my.cnf
   echo -e "[\033[33m*\033[0m] Restarting mysql"
   service mysqld restart 
->>>>>>> 146c253481b431f4544b05e779a7de6ad537e956
+}
+
+script_update_2(){
+  sed -i 's/content_filter = amavis:[127.0.0.1]:10024/#content_filter = amavis:[127.0.0.1]:10024/g' /etc/postfix/main.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/main.cf"
+  sed -i 's/receive_override_options = no_address_mappings/#receive_override_options = no_address_mappings/g' /etc/postfix/main.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/main.cf"
+  sed -i 's/virtual_alias_maps = hash:/\etc/\mailman/\virtual-mailman, proxy:mysql:/\etc/\postfix/\mysql-virtual_forwardings.cf, proxy:mysql:/\etc/\postfix/\mysql-virtual_email2email.cf/virtual_alias_maps = proxy:mysql:/\etc/\postfix/\mysql-virtual_forwardings.cf, proxy:mysql:/\etc/\postfix/\mysql-virtual_email2email.cf/g' /etc/postfix/main.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/main.cf"
+
+  echo -e "[\033[33m*\033[0m] Disable clamav / amavis"
+  sed -i 's/amavis unix - - - - 2 smtp/#amavis unix - - - - 2 smtp/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
+  sed -i 's/-o smtp_data_done_timeout=1200/#-o smtp_data_done_timeout=1200/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
+  sed -i 's/-o smtp_send_xforward_command=yes/#-o smtp_send_xforward_command=yes/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
+  sed -i 's/127.0.0.1:10025 inet n - - - - smtpd/#127.0.0.1:10025 inet n - - - - smtpd/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
+  sed -i 's/-o content_filter=/#-o content_filter=/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
+  sed -i 's/-o local_recipient_maps=/#-o local_recipient_maps=/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
+  sed -i 's/-o relay_recipient_maps=/#-o relay_recipient_maps=/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
+  sed -i 's/-o smtpd_restriction_classes=/#-o smtpd_restriction_classes=/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
+  sed -i 's/-o smtpd_client_restrictions=/#-o smtpd_client_restrictions=/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
+  sed -i 's/-o smtpd_helo_restrictions==/#-o smtpd_helo_restrictions==/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
+  sed -i 's/-o smtpd_sender_restrictions=/#-o smtpd_sender_restrictions=/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
+  sed -i 's/-o smtpd_recipient_restrictions=permit_mynetworks,rej ect/#-o smtpd_recipient_restrictions=permit_mynetworks,rej ect/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
+  sed -i 's/-o mynetworks=127.0.0.0/\8/#-o mynetworks=127.0.0.0/\8/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
+  sed -i 's/-o strict_rfc821_envelopes=yes=/#strict_rfc821_envelopes=yes=/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
+  sed -i 's/-o receive_override_options=no_unknown_recipient_chec ks,no_header_body_checks/#receive_override_options=no_unknown_recipient_chec ks,no_header_body_checks/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
+  sed -i 's/-o smtpd_bind_address=127.0.0.1/#-o smtpd_bind_address=127.0.0.1/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
+  
+  echo -e "[\033[33m*\033[0m] Stop amavis / clamav"
+  /etc/init.d/amavis stop
+  /etc/init.d/clamav-daemon stop
+  /etc/init.d/clamav-freshclam stop
+  
+  chkconfig --levels 235 amavis off
+  chkconfig --levels 235 clamav-daemon off
+  chkconfig --levels 235 clamav-freshclam off
+  
+# New ISP Config install looks for dovecot-sql.conf in a new location... unexplained...
+  cp /etc/dovecot/dovecot-sql.conf /etc/dovecot-sql.conf
+
+  echo -e "[\033[33m*\033[0m] Restart Postfix"
+  /etc/init.d/postfix restart
+}
+
+  install_ISPconfig(){
+  echo -e "[\033[33m*\033[0m] Setting up ISPConfig !"
+  #ISPConfig
+  cd /tmp
+  wget http://www.ispconfig.org/downloads/ISPConfig-3-stable.tar.gz >> $LOG 2>&1
+  tar xfz ISPConfig-3-stable.tar.gz >> $LOG 2>&1
+  cd ispconfig3_install/install/  >> $LOG 2>&1
+  mv /tmp/ispconfig3_install/install/install.php /tmp/ispconfig3_install/install/install.php.bak  >> $LOG 2>&1
+  wget https://raw.githubusercontent.com/nicktrela/qv-server-install/master/perfectServer_ISPConfig_install.php  >> $LOG 2>&1
+  mv perfectServer_ISPConfig_install.php /tmp/ispconfig3_install/install/install.php  >> $LOG 2>&1
+  php install.php
 }
 
 disable_fw
@@ -781,17 +834,5 @@ configure_webdav
 install_squirrelmail
 install_locate
 script_update_1
-
-
-
-
-echo -e "[\033[33m*\033[0m] Setting up ISPConfig !"
-#ISPConfig
-cd /tmp
-wget http://www.ispconfig.org/downloads/ISPConfig-3-stable.tar.gz >> $LOG 2>&1
-tar xfz ISPConfig-3-stable.tar.gz >> $LOG 2>&1
-cd ispconfig3_install/install/  >> $LOG 2>&1
-mv /tmp/ispconfig3_install/install/install.php /tmp/ispconfig3_install/install/install.php.bak  >> $LOG 2>&1
-wget https://raw.githubusercontent.com/nicktrela/qv-server-install/master/perfectServer_ISPConfig_install.php  >> $LOG 2>&1
-mv perfectServer_ISPConfig_install.php /tmp/ispconfig3_install/install/install.php  >> $LOG 2>&1
-php install.php
+install_ISPconfig
+script_update_2
