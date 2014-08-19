@@ -19,16 +19,16 @@ echo "                                      |_|  for auto hosting simply & easil
 echo ""
 echo "\"tail -f log_script.log\" for an install log."
 echo ""
-echo "Enter the IP Address of the Server:"
-read ipaddress	
-echo "Enter the Hostname of the Server:"
-read hostname
-rm /etc/hosts
- cat <<EOF >> /etc/hosts
-127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
-$ipaddress   $hostname.idthq.com     $hostname
-::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
-EOF
+# echo "Enter the IP Address of the Server:"
+# read ipaddress	
+# echo "Enter the Hostname of the Server:"
+# read hostname
+# rm /etc/hosts
+#  cat <<EOF >> /etc/hosts
+# 127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+# $ipaddress   $hostname.idthq.com     $hostname
+# ::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+# EOF
 
 echo -e "\033[31mThis script will set up a Questa Volta Optimized Web Server. Are you sure you want to continue?\033[0m"
 read areyousure
@@ -129,8 +129,13 @@ install_mysql() {
   /etc/init.d/mysqld start >> $LOG 2>&1
 
   echo "Type the MySQL root password you want to set: "
-  read -s mysqlrootpw
-
+  read mysqlrootpw
+  
+#   Set pw asside for use later in ISP Config setup
+  cat - > /tmp/mysqlpw.conf <<EOF
+$mysqlrootpw
+EOF
+  
   SECURE_MYSQL=$(expect -c "
   
   set timeout 10
@@ -253,66 +258,68 @@ install_pma() {
   echo -e "[\033[33m*\033[0m] Configuring PHPmyAdmin"
   yum install phpmyadmin -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing phpmyadmin"
   mv /usr/share/phpmyadmin/config.inc.php /usr/share/phpmyadmin/config.inc.php.bak >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Created config.inc.php backup at /usr/share/phpmyadmin/config.inc.php.bak"
-  cat <<EOF > /usr/share/phpmyadmin/config.inc.php
-	<?php
-	/* vim: set expandtab sw=4 ts=4 sts=4: */
-	/**
- 	* phpMyAdmin sample configuration, you can use it as base for
- 	* manual configuration. For easier setup you can use scripts/setup.php
- 	*
- 	* All directives are explained in Documentation.html and on phpMyAdmin
- 	* wiki <http://wiki.phpmyadmin.net>.
- 	*
- 	* @version $Id$
- 	*/
+  cat <<'EOF' > /usr/share/phpmyadmin/config.inc.php
+<?php
+/* vim: set expandtab sw=4 ts=4 sts=4: */
+/**
+ * phpMyAdmin sample configuration, you can use it as base for
+ * manual configuration. For easier setup you can use scripts/setup.php
+ *
+ * All directives are explained in Documentation.html and on phpMyAdmin
+ * wiki <http://wiki.phpmyadmin.net>.
+ *
+ * @version $Id$
+ */
 
-	/*
- 	* This is needed for cookie based authentication to encrypt password in
- 	* cookie
- 	*/
-	$cfg['blowfish_secret'] = ''; /* YOU MUST FILL IN THIS FOR COOKIE AUTH! */
+/*
+ * This is needed for cookie based authentication to encrypt password in
+ * cookie
+ */
+$cfg['blowfish_secret'] = ''; /* YOU MUST FILL IN THIS FOR COOKIE AUTH! */
 
-	/*
- 	* Servers configuration
- 	*/
-	$i = 0;
+/*
+ * Servers configuration
+ */
+$i = 0;
 
-	/*
- 	* First server
- 	*/
-	$i++;
-	/* Authentication type */
-	$cfg['Servers'][$i]['auth_type'] = 'http';
-	/* Server parameters */
-	$cfg['Servers'][$i]['host'] = 'localhost';
-	$cfg['Servers'][$i]['connect_type'] = 'tcp';
-	$cfg['Servers'][$i]['compress'] = false;
-	/* Select mysqli if your server has it */
-	$cfg['Servers'][$i]['extension'] = 'mysql';
-	/* User for advanced features */
-	// $cfg['Servers'][$i]['controluser'] = 'pma';
-	// $cfg['Servers'][$i]['controlpass'] = 'pmapass';
-	/* Advanced phpMyAdmin features */
-	// $cfg['Servers'][$i]['pmadb'] = 'phpmyadmin';
-	// $cfg['Servers'][$i]['bookmarktable'] = 'pma_bookmark';
-	// $cfg['Servers'][$i]['relation'] = 'pma_relation';
-	// $cfg['Servers'][$i]['table_info'] = 'pma_table_info';
-	// $cfg['Servers'][$i]['table_coords'] = 'pma_table_coords';
-	// $cfg['Servers'][$i]['pdf_pages'] = 'pma_pdf_pages';
-	// $cfg['Servers'][$i]['column_info'] = 'pma_column_info';
-	// $cfg['Servers'][$i]['history'] = 'pma_history';
-	// $cfg['Servers'][$i]['designer_coords'] = 'pma_designer_coords';
+/*
+ * First server
+ */
+$i++;
+/* Authentication type */
+$cfg['Servers'][$i]['auth_type'] = 'http';
+/* Server parameters */
+$cfg['Servers'][$i]['host'] = 'localhost';
+$cfg['Servers'][$i]['connect_type'] = 'tcp';
+$cfg['Servers'][$i]['compress'] = false;
+/* Select mysqli if your server has it */
+$cfg['Servers'][$i]['extension'] = 'mysql';
+/* User for advanced features */
+// $cfg['Servers'][$i]['controluser'] = 'pma';
+// $cfg['Servers'][$i]['controlpass'] = 'pmapass';
+/* Advanced phpMyAdmin features */
+// $cfg['Servers'][$i]['pmadb'] = 'phpmyadmin';
+// $cfg['Servers'][$i]['bookmarktable'] = 'pma_bookmark';
+// $cfg['Servers'][$i]['relation'] = 'pma_relation';
+// $cfg['Servers'][$i]['table_info'] = 'pma_table_info';
+// $cfg['Servers'][$i]['table_coords'] = 'pma_table_coords';
+// $cfg['Servers'][$i]['pdf_pages'] = 'pma_pdf_pages';
+// $cfg['Servers'][$i]['column_info'] = 'pma_column_info';
+// $cfg['Servers'][$i]['history'] = 'pma_history';
+// $cfg['Servers'][$i]['designer_coords'] = 'pma_designer_coords';
 
-	/*
-	 * End of servers configuration
-	 */
+/*
+ * End of servers configuration
+ */
 
-	/*
-	 * Directories for saving/loading files from server
-	 */
-	$cfg['UploadDir'] = '';
-	$cfg['SaveDir'] = '';
-	?>
+/*
+ * Directories for saving/loading files from server
+ */
+$cfg['UploadDir'] = '';
+$cfg['SaveDir'] = '';
+
+?>
+
 EOF
 
   echo -e "[\033[33m*\033[0m] Enabling connections from remote hosts"  
@@ -332,7 +339,7 @@ install_ftpd() {
   chkconfig --levels 235 pure-ftpd on >> $LOG 2>&1
   /etc/init.d/pure-ftpd start >> $LOG 2>&1
   yum install openssl -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
-  sed -i 's/# TLS                      1/TLS    1/' /etc/pure-ftpd/pure-ftpd.conf >> $LOG 2>&1 # is this right??
+  sed -i 's/# TLS                      1/TLS    1/' /etc/pure-ftpd/pure-ftpd.conf >> $LOG 2>&1
   echo -e "[\033[33m*\033[0m] Generating SSL Certificate"
   mkdir -p /etc/ssl/private/ >> $LOG 2>&1
   openssl req -x509 -nodes -days 7300 -newkey rsa:2048 -keyout /etc/ssl/private/pure-ftpd.pem -out /etc/ssl/private/pure-ftpd.pem
@@ -364,7 +371,7 @@ install_bind() {
 	  statistics-file "/var/named/data/named_stats.txt";
 	  memstatistics-file "/var/named/data/named_mem_stats.txt";
 	  allow-query     { any; };
-	  recursion yes;
+	  recursion no; 
 	  };
   logging {
 	  channel default_debug {
@@ -384,8 +391,8 @@ EOF
 
   touch /etc/named.conf.local >> $LOG 2>&1
   echo -e "[\033[33m*\033[0m] Generating key..."
-  chkconfig --levels 235 named on >> $LOG 2>&1
-  /etc/init.d/named start >> $LOG 2>&1
+#   chkconfig --levels 235 named on >> $LOG 2>&1
+#   /etc/init.d/named start >> $LOG 2>&1
 }
 
 install_python(){
@@ -432,26 +439,224 @@ install_squirrelmail(){
   echo -e "[\033[33m*\033[0m] Restarting Apache"
   /etc/init.d/httpd restart >> $LOG 2>&1
   sed -i '/$default_folder_prefix/d' /etc/squirrelmail/config_local.php
-  echo "Please configure SquirrelMail! Commands are as follows:"
-  echo "Command >> D"
-  echo "Command >> dovecot"
-  echo "Press enter..."
-  echo "Command >> S"
-  echo "Command >> Q"
-<<<<<<< HEAD
-  echo "Ready to go?"
-=======
-  echo "Enter to continue..."
->>>>>>> f5fa7cdb02a4aa46242979925ce8d385940f0274
-  read ready
-  echo "Starting SquirrelMail Config:"
-  /usr/share/squirrelmail/config/conf.pl
+  
+####################################
+#   Automatic squirrelmail config  #
+####################################
+
+  cat <<EOF > /etc/squirrelmail/config.php
+	<?php
+
+	/**
+	 * SquirrelMail Configuration File
+	 * Created using the configure script, conf.pl
+	 */
+
+	global $version;
+	$config_version = '1.4.0';
+	$config_use_color = 1;
+
+	$org_name      = "SquirrelMail";
+	$org_logo      = SM_PATH . 'images/sm_logo.png';
+	$org_logo_width  = '308';
+	$org_logo_height = '111';
+	$org_title     = "SquirrelMail $version";
+	$signout_page  = '';
+	$frame_top     = '_top';
+
+	$provider_uri     = 'http://squirrelmail.org/';
+
+	$provider_name     = 'SquirrelMail';
+
+	$motd = "";
+
+	$squirrelmail_default_language = 'en_US';
+	$default_charset       = 'iso-8859-1';
+	$lossy_encoding        = false;
+
+	$domain                 = 'localhost';
+	$imapServerAddress      = 'localhost';
+	$imapPort               = 143;
+	$useSendmail            = true;
+	$smtpServerAddress      = 'localhost';
+	$smtpPort               = 25;
+	$sendmail_path          = '/usr/sbin/sendmail';
+	$sendmail_args          = '-i -t';
+	$pop_before_smtp        = false;
+	$pop_before_smtp_host   = '';
+	$imap_server_type       = 'dovecot';
+	$invert_time            = false;
+	$optional_delimiter     = 'detect';
+	$encode_header_key      = '';
+
+	$default_folder_prefix          = '';
+	$trash_folder                   = 'Trash';
+	$sent_folder                    = 'Sent';
+	$draft_folder                   = 'Drafts';
+	$default_move_to_trash          = true;
+	$default_move_to_sent           = true;
+	$default_save_as_draft          = true;
+	$show_prefix_option             = false;
+	$list_special_folders_first     = true;
+	$use_special_folder_color       = true;
+	$auto_expunge                   = true;
+	$default_sub_of_inbox           = false;
+	$show_contain_subfolders_option = false;
+	$default_unseen_notify          = 2;
+	$default_unseen_type            = 1;
+	$auto_create_special            = true;
+	$delete_folder                  = false;
+	$noselect_fix_enable            = false;
+
+	$data_dir                 = '/var/lib/squirrelmail/prefs/';
+	$attachment_dir           = '/var/spool/squirrelmail/attach/';
+	$dir_hash_level           = 0;
+	$default_left_size        = '150';
+	$force_username_lowercase = true;
+	$default_use_priority     = true;
+	$hide_sm_attributions     = false;
+	$default_use_mdn          = true;
+	$edit_identity            = true;
+	$edit_name                = true;
+	$hide_auth_header         = false;
+	$allow_thread_sort        = true;
+	$allow_server_sort        = true;
+	$allow_charset_search     = true;
+	$uid_support              = true;
+
+	$plugins[0] = 'delete_move_next';
+	$plugins[1] = 'squirrelspell';
+	$plugins[2] = 'newmail';
+
+	$theme_css = '';
+	$theme_default = 0;
+	$theme[0]['PATH'] = SM_PATH . 'themes/default_theme.php';
+	$theme[0]['NAME'] = 'Default';
+	$theme[1]['PATH'] = SM_PATH . 'themes/plain_blue_theme.php';
+	$theme[1]['NAME'] = 'Plain Blue';
+	$theme[2]['PATH'] = SM_PATH . 'themes/sandstorm_theme.php';
+	$theme[2]['NAME'] = 'Sand Storm';
+	$theme[3]['PATH'] = SM_PATH . 'themes/deepocean_theme.php';
+	$theme[3]['NAME'] = 'Deep Ocean';
+	$theme[4]['PATH'] = SM_PATH . 'themes/slashdot_theme.php';
+	$theme[4]['NAME'] = 'Slashdot';
+	$theme[5]['PATH'] = SM_PATH . 'themes/purple_theme.php';
+	$theme[5]['NAME'] = 'Purple';
+	$theme[6]['PATH'] = SM_PATH . 'themes/forest_theme.php';
+	$theme[6]['NAME'] = 'Forest';
+	$theme[7]['PATH'] = SM_PATH . 'themes/ice_theme.php';
+	$theme[7]['NAME'] = 'Ice';
+	$theme[8]['PATH'] = SM_PATH . 'themes/seaspray_theme.php';
+	$theme[8]['NAME'] = 'Sea Spray';
+	$theme[9]['PATH'] = SM_PATH . 'themes/bluesteel_theme.php';
+	$theme[9]['NAME'] = 'Blue Steel';
+	$theme[10]['PATH'] = SM_PATH . 'themes/dark_grey_theme.php';
+	$theme[10]['NAME'] = 'Dark Grey';
+	$theme[11]['PATH'] = SM_PATH . 'themes/high_contrast_theme.php';
+	$theme[11]['NAME'] = 'High Contrast';
+	$theme[12]['PATH'] = SM_PATH . 'themes/black_bean_burrito_theme.php';
+	$theme[12]['NAME'] = 'Black Bean Burrito';
+	$theme[13]['PATH'] = SM_PATH . 'themes/servery_theme.php';
+	$theme[13]['NAME'] = 'Servery';
+	$theme[14]['PATH'] = SM_PATH . 'themes/maize_theme.php';
+	$theme[14]['NAME'] = 'Maize';
+	$theme[15]['PATH'] = SM_PATH . 'themes/bluesnews_theme.php';
+	$theme[15]['NAME'] = 'BluesNews';
+	$theme[16]['PATH'] = SM_PATH . 'themes/deepocean2_theme.php';
+	$theme[16]['NAME'] = 'Deep Ocean 2';
+	$theme[17]['PATH'] = SM_PATH . 'themes/blue_grey_theme.php';
+	$theme[17]['NAME'] = 'Blue Grey';
+	$theme[18]['PATH'] = SM_PATH . 'themes/dompie_theme.php';
+	$theme[18]['NAME'] = 'Dompie';
+	$theme[19]['PATH'] = SM_PATH . 'themes/methodical_theme.php';
+	$theme[19]['NAME'] = 'Methodical';
+	$theme[20]['PATH'] = SM_PATH . 'themes/greenhouse_effect.php';
+	$theme[20]['NAME'] = 'Greenhouse Effect (Changes)';
+	$theme[21]['PATH'] = SM_PATH . 'themes/in_the_pink.php';
+	$theme[21]['NAME'] = 'In The Pink (Changes)';
+	$theme[22]['PATH'] = SM_PATH . 'themes/kind_of_blue.php';
+	$theme[22]['NAME'] = 'Kind of Blue (Changes)';
+	$theme[23]['PATH'] = SM_PATH . 'themes/monostochastic.php';
+	$theme[23]['NAME'] = 'Monostochastic (Changes)';
+	$theme[24]['PATH'] = SM_PATH . 'themes/shades_of_grey.php';
+	$theme[24]['NAME'] = 'Shades of Grey (Changes)';
+	$theme[25]['PATH'] = SM_PATH . 'themes/spice_of_life.php';
+	$theme[25]['NAME'] = 'Spice of Life (Changes)';
+	$theme[26]['PATH'] = SM_PATH . 'themes/spice_of_life_lite.php';
+	$theme[26]['NAME'] = 'Spice of Life - Lite (Changes)';
+	$theme[27]['PATH'] = SM_PATH . 'themes/spice_of_life_dark.php';
+	$theme[27]['NAME'] = 'Spice of Life - Dark (Changes)';
+	$theme[28]['PATH'] = SM_PATH . 'themes/christmas.php';
+	$theme[28]['NAME'] = 'Holiday - Christmas';
+	$theme[29]['PATH'] = SM_PATH . 'themes/darkness.php';
+	$theme[29]['NAME'] = 'Darkness (Changes)';
+	$theme[30]['PATH'] = SM_PATH . 'themes/random.php';
+	$theme[30]['NAME'] = 'Random (Changes every login)';
+	$theme[31]['PATH'] = SM_PATH . 'themes/midnight.php';
+	$theme[31]['NAME'] = 'Midnight';
+	$theme[32]['PATH'] = SM_PATH . 'themes/alien_glow.php';
+	$theme[32]['NAME'] = 'Alien Glow';
+	$theme[33]['PATH'] = SM_PATH . 'themes/dark_green.php';
+	$theme[33]['NAME'] = 'Dark Green';
+	$theme[34]['PATH'] = SM_PATH . 'themes/penguin.php';
+	$theme[34]['NAME'] = 'Penguin';
+
+	$default_use_javascript_addr_book = false;
+	$abook_global_file = '';
+	$abook_global_file_writeable = false;
+	$abook_global_file_listing = true;
+	$abook_file_line_length = 2048;
+
+	$addrbook_dsn = '';
+	$addrbook_table = 'address';
+
+	$prefs_dsn = '';
+	$prefs_table = 'userprefs';
+	$prefs_user_field = 'user';
+	$prefs_key_field = 'prefkey';
+	$prefs_val_field = 'prefval';
+	$addrbook_global_dsn = '';
+	$addrbook_global_table = 'global_abook';
+	$addrbook_global_writeable = false;
+	$addrbook_global_listing = false;
+
+	$no_list_for_subscribe = false;
+	$smtp_auth_mech = 'none';
+	$imap_auth_mech = 'login';
+	$smtp_sitewide_user = '';
+	$smtp_sitewide_pass = '';
+	$use_imap_tls = false;
+	$use_smtp_tls = false;
+	$session_name = 'SQMSESSID';
+	$only_secure_cookies     = true;
+	$disable_security_tokens = false;
+	$check_referrer          = '';
+
+	$config_location_base    = '';
+
+	@include SM_PATH . 'config/config_local.php';
+EOF
+#####################
+# Old manual config #
+#####################
+
+#   echo "Please configure SquirrelMail! Commands are as follows:"
+#   echo "Command >> D"
+#   echo "Command >> dovecot"
+#   echo "Press enter..."
+#   echo "Command >> S"
+#   echo "Command >> Q"
+#   echo "Ready to go?"
+#   echo "Enter to continue..."
+#   read ready
+#   echo "Starting SquirrelMail Config:"
+#   /usr/share/squirrelmail/config/conf.pl
 }
 
 install_cyrus(){
   echo -e "[\033[33m*\033[0m] Installing Cyrus"
-  yum install cyrus-sasl* -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
-  yum install perl-DateTime-Format* -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing"
+  yum install cyrus-sasl* -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing Cyrus"
+  yum install perl-DateTime-Format* -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing Cyrus"
 }
 install_ruby(){
   echo -e "[\033[33m*\033[0m] Installing Ruby"
@@ -477,6 +682,7 @@ configure_webdav(){
   sed -i -e "s,#\(#LoadModule auth_digest_module modules/mod_auth_digest.so\),\1,g" /etc/httpd/conf/httpd.conf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf"
   sed -i -e "s,#\(#LoadModule dav_module modules/mod_dav.so\),\1,g" /etc/httpd/conf/httpd.conf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf"
   sed -i -e "s,#\(#LoadModule dav_fs_module modules/mod_dav_fs.so\),\1,g" /etc/httpd/conf/httpd.conf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf"
+  
   }
 
 install_unzip(){
@@ -484,6 +690,7 @@ install_unzip(){
   yum install unzip bzip2 unrar perl-DBD-mysql -y >> $LOG 2>&1
 }
 
+<<<<<<< HEAD
 send_credentials(){
 $to = 'bob@example.com';
 
@@ -513,6 +720,38 @@ if (($curText) != '') {
 $message .= "<tr><td><strong>NEW Content:</strong> </td><td>" . htmlentities($_POST['newText']) . "</td></tr>";
 $message .= "</table>";
 $message .= "</body></html>";
+=======
+install_locate(){
+  echo -e "[\033[33m*\033[0m] Installing locate"
+  yum install mlocate -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing locate"
+  echo -e "[\033[33m*\033[0m] Updating db"
+  updatedb ||  echo -e "[\033[31mX\033[0m] Error updating db"
+}
+
+script_update_1(){
+  sed -i 's/Timeout 60/Timeout 2/g' /etc/httpd/conf/httpd.conf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf"
+  sed -i 's/MaxRequestsPerChild  4000/MaxRequestsPerChild  1000/g' /etc/httpd/conf/httpd.conf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf"
+  service httpd restart >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error restarting httpd"
+  sed -i 's/apc.shm_size=64M/apc.shm_size=128M/g' /etc/php.d/apc.ini >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/php.d/apc.ini"
+  sed -i 's/apc.num_files_hint=1024/apc.num_files_hint=10024/g' /etc/php.d/apc.ini >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/php.d/apc.ini"
+  sed -i 's/apc.user_entries_hint=4096/apc.user_entries_hint=40096/g' /etc/php.d/apc.ini >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/php.d/apc.ini"
+  sed -i 's/apc.enable_cli=0/apc.enable_cli=1/g' /etc/php.d/apc.ini >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/php.d/apc.ini"
+  sed -i 's/apc.enable_cli=0/apc.enable_cli=1/g' /etc/php.d/apc.ini >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/php.d/apc.ini"
+  sed -i 's/apc.max_file_size=1M/apc.max_file_size=8M/g' /etc/php.d/apc.ini >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/php.d/apc.ini"
+  sed -i 's/apc.stat=1/apc.stat=0/g' /etc/php.d/apc.ini >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/php.d/apc.ini"
+  service httpd restart >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error restarting httpd"
+  sed -i '/symbolic-links=0/a\
+    query_cache_size = 128M\
+    join_buffer_size = 4M\
+    thread_cache_size = 8\
+    table_cache = 256\
+    tmp_table_size = 64M\
+    max_heap_table_size = 64M\
+    innodb_buffer_pool_size = 512M
+  ' /etc/my.cnf
+  echo -e "[\033[33m*\033[0m] Restarting mysql"
+  service mysqld restart 
+>>>>>>> 146c253481b431f4544b05e779a7de6ad537e956
 }
 
 disable_fw
@@ -540,6 +779,9 @@ install_cyrus
 install_bind
 configure_webdav
 install_squirrelmail
+install_locate
+script_update_1
+
 
 
 
@@ -548,6 +790,8 @@ echo -e "[\033[33m*\033[0m] Setting up ISPConfig !"
 cd /tmp
 wget http://www.ispconfig.org/downloads/ISPConfig-3-stable.tar.gz >> $LOG 2>&1
 tar xfz ISPConfig-3-stable.tar.gz >> $LOG 2>&1
-cd ispconfig3_install/install/
-
+cd ispconfig3_install/install/  >> $LOG 2>&1
+mv /tmp/ispconfig3_install/install/install.php /tmp/ispconfig3_install/install/install.php.bak  >> $LOG 2>&1
+wget https://raw.githubusercontent.com/nicktrela/qv-server-install/master/perfectServer_ISPConfig_install.php  >> $LOG 2>&1
+mv perfectServer_ISPConfig_install.php /tmp/ispconfig3_install/install/install.php  >> $LOG 2>&1
 php install.php
