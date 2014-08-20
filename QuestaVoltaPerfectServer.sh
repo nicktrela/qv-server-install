@@ -692,35 +692,7 @@ install_unzip(){
 }
 
 send_credentials(){
-$to = 'bob@example.com';
 
-$subject = 'Website Change Request';
-
-$headers = "From: " . strip_tags($_POST['req-email']) . "\r\n";
-$headers .= "Reply-To: ". strip_tags($_POST['req-email']) . "\r\n";
-$headers .= "CC: susan@example.com\r\n";
-$headers .= "MIME-Version: 1.0\r\n";
-$headers .= "Content-Type: text/html; charset=ISO-8859-1\r\n";
-$message = '<html><body>';
-$message .= '<img src="http://css-tricks.com/examples/WebsiteChangeRequestForm/images/wcrf-header.png" alt="Website Change Request" />';
-$message .= '<table rules="all" style="border-color: #666;" cellpadding="10">';
-$message .= "<tr style='background: #eee;'><td><strong>Name:</strong> </td><td>" . strip_tags($_POST['req-name']) . "</td></tr>";
-$message .= "<tr><td><strong>Email:</strong> </td><td>" . strip_tags($_POST['req-email']) . "</td></tr>";
-$message .= "<tr><td><strong>Type of Change:</strong> </td><td>" . strip_tags($_POST['typeOfChange']) . "</td></tr>";
-$message .= "<tr><td><strong>Urgency:</strong> </td><td>" . strip_tags($_POST['urgency']) . "</td></tr>";
-$message .= "<tr><td><strong>URL To Change (main):</strong> </td><td>" . $_POST['URL-main'] . "</td></tr>";
-$addURLS = $_POST['addURLS'];
-if (($addURLS) != '') {
-    $message .= "<tr><td><strong>URL To Change (additional):</strong> </td><td>" . strip_tags($addURLS) . "</td></tr>";
-}
-$curText = htmlentities($_POST['curText']);           
-if (($curText) != '') {
-    $message .= "<tr><td><strong>CURRENT Content:</strong> </td><td>" . $curText . "</td></tr>";
-}
-$message .= "<tr><td><strong>NEW Content:</strong> </td><td>" . htmlentities($_POST['newText']) . "</td></tr>";
-$message .= "</table>";
-$message .= "</body></html>";
-=======
 }
 
 install_locate(){
@@ -756,9 +728,9 @@ script_update_1(){
 }
 
 script_update_2(){
-  sed -i 's/content_filter = amavis:[127.0.0.1]:10024/#content_filter = amavis:[127.0.0.1]:10024/g' /etc/postfix/main.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/main.cf"
+  sed -i 's/hash:\/etc\/mailman\/virtual-mailman, //g' /etc/postfix/main.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/main.cf"
+  sed -i 's/content_filter = amavis/#content_filter = amavis/g' /etc/postfix/main.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/main.cf"
   sed -i 's/receive_override_options = no_address_mappings/#receive_override_options = no_address_mappings/g' /etc/postfix/main.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/main.cf"
-  sed -i 's/virtual_alias_maps = hash:/\etc/\mailman/\virtual-mailman, proxy:mysql:/\etc/\postfix/\mysql-virtual_forwardings.cf, proxy:mysql:/\etc/\postfix/\mysql-virtual_email2email.cf/virtual_alias_maps = proxy:mysql:/\etc/\postfix/\mysql-virtual_forwardings.cf, proxy:mysql:/\etc/\postfix/\mysql-virtual_email2email.cf/g' /etc/postfix/main.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/main.cf"
 
   echo -e "[\033[33m*\033[0m] Disable clamav / amavis"
   sed -i 's/amavis unix - - - - 2 smtp/#amavis unix - - - - 2 smtp/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
@@ -770,13 +742,12 @@ script_update_2(){
   sed -i 's/-o relay_recipient_maps=/#-o relay_recipient_maps=/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
   sed -i 's/-o smtpd_restriction_classes=/#-o smtpd_restriction_classes=/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
   sed -i 's/-o smtpd_client_restrictions=/#-o smtpd_client_restrictions=/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
-  sed -i 's/-o smtpd_helo_restrictions==/#-o smtpd_helo_restrictions==/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
+  sed -i 's/-o smtpd_helo_restrictions=/#-o smtpd_helo_restrictions=/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
   sed -i 's/-o smtpd_sender_restrictions=/#-o smtpd_sender_restrictions=/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
-  sed -i 's/-o smtpd_recipient_restrictions=permit_mynetworks,rej ect/#-o smtpd_recipient_restrictions=permit_mynetworks,rej ect/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
-  sed -i 's/-o mynetworks=127.0.0.0/\8/#-o mynetworks=127.0.0.0/\8/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
-  sed -i 's/-o strict_rfc821_envelopes=yes=/#strict_rfc821_envelopes=yes=/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
-  sed -i 's/-o receive_override_options=no_unknown_recipient_chec ks,no_header_body_checks/#receive_override_options=no_unknown_recipient_chec ks,no_header_body_checks/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
-  sed -i 's/-o smtpd_bind_address=127.0.0.1/#-o smtpd_bind_address=127.0.0.1/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
+  sed -i 's/-o smtpd_recipient_restrictions=permit_mynetworks,reject/#-o smtpd_recipient_restrictions=permit_mynetworks,reject/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
+  sed -i 's/-o mynetworks=127.0.0.0/#-o mynetworks=127.0.0.0/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
+  sed -i 's/-o strict_rfc821_envelopes=yes/#-o strict_rfc821_envelopes=yes/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
+  sed -i 's/-o receive_override_options=no_unknown_recipient_checks,no_header_body_checks/#-o receive_override_options=no_unknown_recipient_checks,no_header_body_checks/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"
   
   echo -e "[\033[33m*\033[0m] Stop amavis / clamav"
   /etc/init.d/amavis stop
@@ -787,8 +758,9 @@ script_update_2(){
   chkconfig --levels 235 clamav-daemon off
   chkconfig --levels 235 clamav-freshclam off
   
-# New ISP Config install looks for dovecot-sql.conf in a new location... unexplained...
-  cp /etc/dovecot/dovecot-sql.conf /etc/dovecot-sql.conf
+  # New ISP Config install looks for dovecot-sql.conf in a new location
+  ln -s /etc/dovecot/dovecot-sql.conf /etc/dovecot-sql.conf
+  ln -s /etc/dovecot/dovecot.conf /etc/dovecot.conf
 
   echo -e "[\033[33m*\033[0m] Restart Postfix"
   /etc/init.d/postfix restart
