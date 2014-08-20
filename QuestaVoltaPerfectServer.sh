@@ -692,7 +692,12 @@ install_unzip(){
 }
 
 send_credentials(){
-
+  wget -O /tmp/email-template.html https://raw.githubusercontent.com/nicktrela/qv-server-install/master/QV%20Email%20Template.html
+  variable="root@$(hostname)"
+#   sed -i "s/{{hostname}}/$variable/g" /tmp/email-template.html >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /tmp/email-template.html"
+  sed -i "s/{{hostname}}/$variable/g" /tmp/email-template.html
+  mail -s "Your server was successfully setup" nick@questavolta.com < /tmp/email-template.html
+  rm -rf /tmp/email-template.html
 }
 
 install_locate(){
