@@ -337,10 +337,10 @@ if($install_mode == 'standard') {
 
 // 	if(strtolower($inst->simple_query('Do you want a secure (SSL) connection to the ISPConfig web interface', array('y', 'n'), 'y')) == 'y') {
 // 		$inst->make_ispconfig_ssl_cert();
-
+//}
 // We always use an ssl connection
 		$inst->make_ispconfig_ssl_cert();
-	}
+	
 
 	$inst->install_ispconfig();
 
