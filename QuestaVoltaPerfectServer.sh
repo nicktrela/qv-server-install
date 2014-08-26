@@ -1078,11 +1078,11 @@ install_cyrus
 install_bind
 configure_webdav
 # install_squirrelmail
-install_roundcube
 install_locate
 script_update_1
 install_ISPconfig
 script_update_2
 initialize_ISPConfig
+install_roundcube
 send_install_report
 
