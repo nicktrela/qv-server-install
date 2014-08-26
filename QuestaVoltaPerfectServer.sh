@@ -578,7 +578,7 @@ EOF
   
   cp /etc/php.ini /etc/php.ini.bak >> $LOG 2>&1
   
-  sed -i 's#\;date\.timezone =#date.timezone = America/Los_Angeles#' /etc/php.ini >> $LOG 2>&
+  sed -i 's#\;date\.timezone =#date.timezone = America/Los_Angeles#' /etc/php.ini >> $LOG 2>&1
   sed -i 's#bc#/usr/share/roundcube/program/include/bc#' /usr/share/webmail/installer/index.php >> $LOG 2>&1
 
   echo -e "[\033[33m*\033[0m] Restarting Apache" && echo -e "[\033[33m*\033[0m] restarting Apache" >> /tmp/server_log.txt
