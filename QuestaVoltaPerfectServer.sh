@@ -37,6 +37,8 @@ echo -e "\033[31mThis script will set up a Questa Volta Optimized Web Server.\03
 # else echo -e "\033[31mStarting installation...\033[0m"
 # fi
 
+test "$(whoami)" != 'root' && (echo -e "\033[31mYou are using a non-privileged account. Please log in as root.\033[0m"; exit 1)
+
 LOG=/root/log_script.log
 
 # Create hostname & servername variables
@@ -45,56 +47,61 @@ servername=$(echo "$(hostname)" | sed 's/.idthq.com//g')
   
 echo "NOZEROCONF=yes" >> /etc/sysconfig/network
 
+
+
 # Configuration of repository for CentOS
 
 configure_repo() {
-  yum -y install wget >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error installing wget - Check Logs" && echo -e "[\033[31mX\033[0m] Error installing wget - Check Logs" >> /tmp/server_log.txt
-
+  yum -y install wget >> $LOG 2>&1
+  
   echo -e "[\033[33m*\033[0m] Installing & configuring epel, rpmforge repos..." && echo -e "[\033[33m*\033[0m] Installing & configuring epel, rpmforge repos..." >> /tmp/server_log.txt
-  rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY* >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error importing key /etc/pki/rpm-gpg/RPM-GPG-KEY*" && echo -e "[\033[31mX\033[0m] Error importing key /etc/pki/rpm-gpg/RPM-GPG-KEY*" >> /tmp/server_log.txt
-  rpm --import http://dag.wieers.com/rpm/packages/RPM-GPG-KEY.dag.txt >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error importing key RPM-GPG-KEY.dag" && echo -e "[\033[31mX\033[0m] Error importing key RPM-GPG-KEY.dag" >> /tmp/server_log.txt
+  rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY* >> $LOG 2>&1
+  rpm --import http://dag.wieers.com/rpm/packages/RPM-GPG-KEY.dag.txt >> $LOG 2>&1
   cd /tmp
-  wget http://pkgs.repoforge.org/rpmforge-release/rpmforge-release-0.5.2-2.el6.rf.x86_64.rpm >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error downloading RPMForge rpm" && echo -e "[\033[31mX\033[0m] Error downloading RPMForge rpm" >> /tmp/server_log.txt
-  rpm -ivh rpmforge-release-0.5.2-2.el6.rf.x86_64.rpm >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error installing rpmforge rpm" && echo -e "[\033[31mX\033[0m] Error installing rpmforge rpm" >> /tmp/server_log.txt
+  wget http://pkgs.repoforge.org/rpmforge-release/rpmforge-release-0.5.2-2.el6.rf.x86_64.rpm >> $LOG 2>&1
+  rpm -ivh rpmforge-release-0.5.2-2.el6.rf.x86_64.rpm >> $LOG 2>&1
+  
+  rpm --import https://fedoraproject.org/static/0608B895.txt >> $LOG 2>&1
+  wget http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm >> $LOG 2>&1
+  rpm -ivh epel-release-6-8.noarch.rpm >> $LOG 2>&1
+  
+  #rpm --import http://rpms.famillecollet.com/RPM-GPG-KEY-remi >> $LOG 2>&1  || echo -e "[\033[31mX\033[0m] ($LINENO) Error import key remi"
+  #rpm -ivh http://rpms.famillecollet.com/enterprise/remi-release-6.rpm >> $LOG 2>&1  || echo -e "[\033[31mX\033[0m] ($LINENO) Error installing rpm remi"
 
-  rpm --import https://fedoraproject.org/static/0608B895.txt >> $LOG 2>&1  || echo -e "[\033[31mX\033[0m] Error importing epel key" && echo -e "[\033[31mX\033[0m] Error importing epel key">> /tmp/server_log.txt
-  wget http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm >> $LOG 2>&1  || echo -e "[\033[31mX\033[0m] Error downloading epel repo rpm" && echo -e "[\033[31mX\033[0m] Error downloading epel repo rpm" >> /tmp/server_log.txt
-  rpm -ivh epel-release-6-8.noarch.rpm >> $LOG 2>&1  || echo -e "[\033[31mX\033[0m] Error installing epel repo rpm" && echo -e "[\033[31mX\033[0m] Error installing epel repo rpm">> /tmp/server_log.txt
-
-  #rpm --import http://rpms.famillecollet.com/RPM-GPG-KEY-remi >> $LOG 2>&1  || echo -e "[\033[31mX\033[0m] Error import key remi"
-  #rpm -ivh http://rpms.famillecollet.com/enterprise/remi-release-6.rpm >> $LOG 2>&1  || echo -e "[\033[31mX\033[0m] Error installing rpm remi"
-
-  yum install yum-priorities -y >> $LOG 2>&1 echo -e "[\033[31mX\033[0m] Error installing yum-priorites" && echo -e "[\033[31mX\033[0m] Error installing yum-priorites" >> /tmp/server_log.txt
+  yum install yum-priorities -y >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] ($LINENO) Error installing yum-priorites" && echo -e "[\033[31mX\033[0m] ($LINENO) Error installing yum-priorites" >> /tmp/server_log.txt
   awk 'NR== 2 { print "priority=10" } { print }' /etc/yum.repos.d/epel.repo > /tmp/epel.repo
-  rm /etc/yum.repos.d/epel.repo -f >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  mv /tmp/epel.repo /etc/yum.repos.d >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-
+  rm /etc/yum.repos.d/epel.repo -f >> $LOG 2>&1
+  mv /tmp/epel.repo /etc/yum.repos.d >> $LOG 2>&1
+  
   #sed -i -e "0,/5/s/enabled=0/enabled=1/" /etc/yum.repos.d/remi.repo
 }
 
 pword() {
   # Password generator
-  date +%s | sha256sum | base64 | head -c 24 ; echo >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error generating password - Check Logs" && echo -e "[\033[31mX\033[0m] Error generating password - Check Logs" >> /tmp/server_log.txt
-  }
+  date +%s | sha256sum | base64 | head -c 24 ; echo
+}
 
 update_system() {
-  echo -e "[\033[33m*\033[0m] Updating full system (This could take a while...)" && echo -e "[\033[33m*\033[0m] Updating full system)" >> /tmp/server_log.txt
-  yum update -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error in yum update" && echo -e "[\033[31mX\033[0m] Error in yum update" >> /tmp/server_log.txt
+  echo -e "[\033[33m*\033[0m] Updating full system (This could take a while...)" && echo -e "[\033[33m*\033[0m] Updating full system" >> /tmp/server_log.txt
+  yum update -y >> $LOG 2>&1
 }
 
 install_required_packages() {
   echo -e "[\033[33m*\033[0m] Installing required packages" && echo -e "[\033[33m*\033[0m] Installing required packages" >> /tmp/server_log.txt
-  yum install -y vim htop iftop nmap screen git expect >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error installing base packages" >> /tmp/server_log.txt
+  yum install -y vim htop iftop nmap screen git expect >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] ($LINENO) Error installing base packages" >> /tmp/server_log.txt
   echo -e "[\033[33m*\033[0m] Installing Development Tools" && echo -e "[\033[33m*\033[0m] Installing Development Tools" >> /tmp/server_log.txt 
-  yum groupinstall -y 'Development Tools'  >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error installing Dev Tools metapackage" && echo -e "[\033[31mX\033[0m] Error installing Dev Tools metapackage" >> /tmp/server_log.txt
+  yum groupinstall -y 'Development Tools'  >> $LOG 2>&1
 }
 
 install_quota(){
   echo -e "[\033[33m*\033[0m] Installing and configuring Quota" && echo -e "[\033[33m*\033[0m] Installing and configuring Quota" >> /tmp/server_log.txt
-  yum install quota -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing Quota" && echo -e "[\033[31mX\033[0m] Error installing Quota" >> /tmp/server_log.txt
-  sed '0,/ext4/s/ext4/ext4    defaults,usrjquota=aquota.user,grpjquota=aquota.group,jqfmt=vfsv0/' /etc/fstab >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  yum install quota -y >> $LOG 2>&1
+  sed -i '0,/ext4/s/ext4/ext4    defaults,usrjquota=aquota.user,grpjquota=aquota.group,jqfmt=vfsv0/' /etc/fstab >> $LOG 2>&1
+  sed -i "s/defaults,noatime//g" /etc/fstab >> $LOG 2>&1
+  touch /quota.user /quota.group
+  chmod 600 /quota.*
   echo -e "[\033[33m*\033[0m] Remounting..." && echo -e "[\033[33m*\033[0m] Remounting..." >> /tmp/server_log.txt
-  mount -o remount / >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error remounting" >> /tmp/server_log.txt
+  mount -o remount / >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error remounting" >> /tmp/server_log.txt
   echo -e "[\033[33m*\033[0m] Enabling Quota" && echo -e "[\033[33m*\033[0m] Enabling Quota" >> /tmp/server_log.txt
   quotacheck -avugm >> $LOG 2>&1 
   quotaon -avug >> $LOG 2>&1 
@@ -102,40 +109,40 @@ install_quota(){
 
 install_ntpd() {
   echo -e "[\033[33m*\033[0m] Installing and configuring NTPD" && echo -e "[\033[33m*\033[0m] Installing and configuring NTPD" >> /tmp/server_log.txt
-  yum install -y ntp  >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing" >> /tmp/server_log.txt
-  chkconfig ntpd on >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  yum install -y ntp  >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error installing" >> /tmp/server_log.txt
+  chkconfig ntpd on >> $LOG 2>&1
 }
 
 install_apache_phpMyAdmin(){
   echo -e "[\033[33m*\033[0m] Installing Apache, MySQL and phpMyAdmin..." && echo -e "[\033[33m*\033[0m] Installing Apache, MySQL and phpMyAdmin..." >> /tmp/server_log.txt
-  yum install ntp httpd mod_ssl php php-mysql php-mbstring phpmyadmin -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing" >> /tmp/server_log.txt
+  yum install ntp httpd mod_ssl php php-mysql php-mbstring phpmyadmin -y >> $LOG 2>&1
 }
 
 disable_fw() {
   echo -e "[\033[33m*\033[0m] Disabling Firewall (for installation time)" && echo -e "[\033[33m*\033[0m] Disabling Firewall (for installation time)" >> /tmp/server_log.txt
-  service iptables save >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  service iptables stop >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  chkconfig iptables off >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  service iptables save >> $LOG 2>&1
+  service iptables stop >> $LOG 2>&1
+  chkconfig iptables off >> $LOG 2>&1
 }
 
 disable_selinux() {
   echo -e "[\033[33m*\033[0m] Disabling SELinux" && echo -e "[\033[33m*\033[0m] Disabling SELinux" >> /tmp/server_log.txt
-  sed -i -e 's/SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error disabling SELinux"  && echo -e "[\033[31mX\033[0m] Error disabling SELinux" >> /tmp/server_log.txt
-  setenforce 0 >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  sed -i -e 's/SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config
+  setenforce 0 >> $LOG 2>&1
 }
 
 install_atop_htop(){
   echo -e "[\033[33m*\033[0m] Installing atop" && echo -e "[\033[33m*\033[0m] Installing atop" >> /tmp/server_log.txt
-  yum install atop -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing atop" >> /tmp/server_log.txt
+  yum install atop -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error installing atop" >> /tmp/server_log.txt
   echo -e "[\033[33m*\033[0m] Installing htop" && echo -e "[\033[33m*\033[0m] Installing htop" >> /tmp/server_log.txt
-  yum install htop -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing htop" >> /tmp/server_log.txt
+  yum install htop -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error installing htop" >> /tmp/server_log.txt
 }
 install_mysql() {
   echo -e "[\033[33m*\033[0m] Installing MYSQL Server" && echo -e "[\033[33m*\033[0m] Installing MYSQL Server" >> /tmp/server_log.txt
-  yum install mysql mysql-server -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing" >> /tmp/server_log.txt
-  chkconfig --levels 235 mysqld on >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  /etc/init.d/mysqld start >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-
+  yum install mysql mysql-server -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error installing MySQL" >> /tmp/server_log.txt
+  chkconfig --levels 235 mysqld on >> $LOG 2>&1
+  /etc/init.d/mysqld start >> $LOG 2>&1
+    
   echo "Generating MySQL Root PW: "
   mysqlrootpw=$(pword)
   echo $mysqlrootpw
@@ -177,7 +184,7 @@ EOF
   expect eof
   " >> $LOG)
 
-  echo "$SECURE_MYSQL" >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error configuring MySQL" && echo -e "[\033[31mX\033[0m] Error configuring MySQL" >> /tmp/server_log.txt
+  echo "$SECURE_MYSQL" >> $LOG 2>&1
 }
 
 MySQLCreateDB(){
@@ -224,7 +231,7 @@ MySQLChangeCPAdminPass(){
   E_BADARGS=65
   MYSQL=`which mysql`
   
-  Q1="UPDATE  ${BTICK}dbispconfig${BTICK}.${BTICK}sys_user${BTICK} SET  ${BTICK}passwort${BTICK} = MD5(  '$1' ) WHERE  ${BTICK}sys_user${BTICK}.${BTICK}userid${BTICK} =1 LIMIT 1 ;"
+  Q1="UPDATE  ${BTICK}dbispconfig${BTICK}.${BTICK}sys_user${BTICK} SET  ${BTICK}passwort${BTICK} = MD5('$1') WHERE  ${BTICK}sys_user${BTICK}.${BTICK}userid${BTICK} =1 LIMIT 1 ;"
   SQL="${Q1}"
  
   if [ $# -ne $EXPECTED_ARGS ]
@@ -233,7 +240,7 @@ MySQLChangeCPAdminPass(){
     exit $E_BADARGS
   fi
  
-  $MYSQL -uroot -p$(cat /tmp/mysqlpw.conf) -e "$SQL" >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  $MYSQL -uroot -p$(cat /tmp/mysqlpw.conf) -e "$SQL" >> $LOG 2>&1
 }
 
 
@@ -241,42 +248,42 @@ MySQLChangeCPAdminPass(){
 
 install_dovecot() {
   echo -e "[\033[33m*\033[0m] Installing DOVECOT Server" && echo -e "[\033[33m*\033[0m] Installing DOVECOT Server" >> /tmp/server_log.txt
-  yum install dovecot dovecot-mysql -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing Dovecot or MySQL" && echo -e "[\033[31mX\033[0m] Error installing Dovecot or MySQL" >> /tmp/server_log.txt
-  chkconfig --levels 235 dovecot on >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  /etc/init.d/dovecot start >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  yum install dovecot dovecot-mysql -y >> $LOG 2>&1
+  chkconfig --levels 235 dovecot on >> $LOG 2>&1
+  /etc/init.d/dovecot start >> $LOG 2>&1
 }
   
 install_postfix() {  
   echo -e "[\033[33m*\033[0m] Installing Postfix Server" && echo -e "[\033[33m*\033[0m] Installing Postfix Server" >> /tmp/server_log.txt
-  yum install postfix -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing" && echo -e "[\033[31mX\033[0m] Error installing" >> /tmp/server_log.txt
-  chkconfig --levels 235 postfix on >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  /etc/init.d/mysqld start >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  chkconfig --levels 235 postfix on >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  /etc/init.d/postfix restart >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  yum install postfix -y >> $LOG 2>&1
+  chkconfig --levels 235 postfix on >> $LOG 2>&1
+  /etc/init.d/mysqld start >> $LOG 2>&1
+  chkconfig --levels 235 postfix on >> $LOG 2>&1
+  /etc/init.d/postfix restart >> $LOG 2>&1
 }
   
 install_getmail() {
   echo -e "[\033[33m*\033[0m] Installing getmail" >> /tmp/server_log.txt
-  yum install getmail -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing" >> /tmp/server_log.txt
+  yum install getmail -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error installing" >> /tmp/server_log.txt
 }
 
 
 install_modphp(){
   echo -e "[\033[33m*\033[0m] Installing Apache2 With mod_php, mod_fcgi/PHP5, And suPHP" && echo -e "[\033[33m*\033[0m] Installing Apache2 With mod_php, mod_fcgi/PHP5, And suPHP" >> /tmp/server_log.txt
-  yum install php php-devel php-gd php-imap php-ldap php-mysql php-odbc php-pear php-xml php-xmlrpc php-pecl-apc php-mbstring php-mcrypt php-mssql php-snmp php-soap php-tidy curl curl-devel perl-libwww-perl ImageMagick libxml2 libxml2-devel mod_fcgid php-cli httpd-devel -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing" && echo -e "[\033[31mX\033[0m] Error installing" >> /tmp/server_log.txt
-  sed -i 's/; cgi.fix_pathinfo=1/cgi.fix_pathinfo=1/' /etc/php.ini >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing php.ini" &&  echo -e "[\033[31mX\033[0m] Error editing php.ini" >> /tmp/server_log.txt
+  yum install php php-devel php-gd php-imap php-ldap php-mysql php-odbc php-pear php-xml php-xmlrpc php-pecl-apc php-mbstring php-mcrypt php-mssql php-snmp php-soap php-tidy curl curl-devel perl-libwww-perl ImageMagick libxml2 libxml2-devel mod_fcgid php-cli httpd-devel -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error installing" && echo -e "[\033[31mX\033[0m] ($LINENO) Error installing" >> /tmp/server_log.txt
+  sed -i 's/; cgi.fix_pathinfo=1/cgi.fix_pathinfo=1/' /etc/php.ini >> $LOG 2>&1
   sed -i 's/;cgi.fix_pathinfo=1/cgi.fix_pathinfo=1/' /etc/php.ini >> $LOG 2>&1 
-  sed -i 's/error_reporting = E_ALL \&\ ~E_DEPRECATED/error_reporting = E_ALL \&\ ~E_NOTICE/' /etc/php.ini >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing php.ini" && echo -e "[\033[31mX\033[0m] Error editing php.ini" >> /tmp/server_log.txt
-  cd /tmp >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  sed -i 's/error_reporting = E_ALL \&\ ~E_DEPRECATED/error_reporting = E_ALL \&\ ~E_NOTICE/' /etc/php.ini >> $LOG 2>&1
+  cd /tmp >> $LOG 2>&1
   echo -e "[\033[33m*\033[0m] Getting suPHP" && echo -e "[\033[33m*\033[0m] Getting suPHP" >> /tmp/server_log.txt
-  wget http://suphp.org/download/suphp-0.7.1.tar.gz >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  wget http://suphp.org/download/suphp-0.7.1.tar.gz >> $LOG 2>&1
   echo -e "[\033[33m*\033[0m] Unzipping" && echo -e "[\033[33m*\033[0m] Unzipping" >> /tmp/server_log.txt
-  tar xvfz suphp-0.7.1.tar.gz >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  tar xvfz suphp-0.7.1.tar.gz >> $LOG 2>&1
   echo -e "[\033[33m*\033[0m] Installing suPHP" && echo -e "[\033[33m*\033[0m] Installing suPHP" >> /tmp/server_log.txt
-  cd suphp-0.7.1/ >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  ./configure --prefix=/usr --sysconfdir=/etc --with-apr=/usr/bin/apr-1-config --with-apxs=/usr/sbin/apxs --with-apache-user=apache --with-setid-mode=owner --with-php=/usr/bin/php-cgi --with-logfile=/var/log/httpd/suphp_log --enable-SUPHP_USE_USERGROUP=yes >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  make >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  make install >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  cd suphp-0.7.1/ >> $LOG 2>&1
+  ./configure --prefix=/usr --sysconfdir=/etc --with-apr=/usr/bin/apr-1-config --with-apxs=/usr/sbin/apxs --with-apache-user=apache --with-setid-mode=owner --with-php=/usr/bin/php-cgi --with-logfile=/var/log/httpd/suphp_log --enable-SUPHP_USE_USERGROUP=yes >> $LOG 2>&1
+  make >> $LOG 2>&1
+  make install >> $LOG 2>&1
   echo -e "[\033[33m*\033[0m] Adding suPHP to Apache Configuration" && echo -e "[\033[33m*\033[0m] Adding suPHP to Apache Configuration" >> /tmp/server_log.txt
   echo "LoadModule suphp_module modules/mod_suphp.so" > /etc/httpd/conf.d/suphp.conf
   cat <<EOF >> /etc/suphp.conf
@@ -317,15 +324,15 @@ install_modphp(){
 EOF
 
   echo -e "[\033[33m*\033[0m] Restarting Apache" && echo -e "[\033[33m*\033[0m] Restarting Apache" >> /tmp/server_log.txt
-  /etc/init.d/httpd restart >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  /etc/init.d/httpd restart >> $LOG 2>&1
 
 }
 
 
 install_pma() {
   echo -e "[\033[33m*\033[0m] Configuring PHPmyAdmin" && echo -e "[\033[33m*\033[0m] Configuring PHPmyAdmin" >> /tmp/server_log.txt
-  yum install phpmyadmin -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing phpmyadmin" && echo -e "[\033[31mX\033[0m] Error installing phpmyadmin" >> /tmp/server_log.txt
-  mv /usr/share/phpmyadmin/config.inc.php /usr/share/phpmyadmin/config.inc.php.bak >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Created config.inc.php backup at /usr/share/phpmyadmin/config.inc.php.bak" && echo -e "[\033[31mX\033[0m] Created config.inc.php backup at /usr/share/phpmyadmin/config.inc.php.bak" >> /tmp/server_log.txt
+  yum install phpmyadmin -y >> $LOG 2>&1
+  mv /usr/share/phpmyadmin/config.inc.php /usr/share/phpmyadmin/config.inc.php.bak >> $LOG 2>&1
   cat <<'EOF' > /usr/share/phpmyadmin/config.inc.php
   <?php
   /* vim: set expandtab sw=4 ts=4 sts=4: */
@@ -390,38 +397,38 @@ install_pma() {
 EOF
 
   echo -e "[\033[33m*\033[0m] Enabling connections from remote hosts"  
-  sed -e '/<Directory/ s/^#*/#/' -i /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf" && echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf" >> /tmp/server_log.txt
-  sed -e '/Order Deny,Allow/ s/^#*/#/' -i /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf" && echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf" >> /tmp/server_log.txt
-  sed -e '/Deny from all/ s/^#*/#/' -i /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf" && echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf" >> /tmp/server_log.txt
-  sed -e '/Allow from 127.0.0.1/ s/^#*/#/' -i /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf" && echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf" >> /tmp/server_log.txt
-  sed -e '/Directory/ s/^#*/#/' -i /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf" && echo -e "[\033[31mX\033[0m] Error editing phpmyadmin.conf" >> /tmp/server_log.txt
+  sed -e '/<Directory/ s/^#*/#/' -i /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1
+  sed -e '/Order Deny,Allow/ s/^#*/#/' -i /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1
+  sed -e '/Deny from all/ s/^#*/#/' -i /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1
+  sed -e '/Allow from 127.0.0.1/ s/^#*/#/' -i /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1
+  sed -e '/Directory/ s/^#*/#/' -i /etc/httpd/conf.d/phpmyadmin.conf >> $LOG 2>&1
   echo -e "[\033[33m*\033[0m] Starting Apache..." && echo -e "[\033[33m*\033[0m] Starting Apache..." >> /tmp/server_log.txt
-  chkconfig --levels 235 httpd on >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  /etc/init.d/httpd start >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error starting Apache" && echo -e "[\033[31mX\033[0m] Error starting Apache" >> /tmp/server_log.txt
-  }
+  chkconfig --levels 235 httpd on >> $LOG 2>&1
+  /etc/init.d/httpd start >> $LOG 2>&1
+}
 
 install_ftpd() {
   echo -e "[\033[33m*\033[0m] Installing PureFTPD" && echo -e "[\033[33m*\033[0m] Installing PureFTPD" >> /tmp/server_log.txt
-  yum install pure-ftpd -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing" && echo -e "[\033[31mX\033[0m] Error installing" >> /tmp/server_log.txt
-  chkconfig --levels 235 pure-ftpd on >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  /etc/init.d/pure-ftpd start >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  yum install openssl -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing" && echo -e "[\033[31mX\033[0m] Error installing" >> /tmp/server_log.txt
-  sed -i 's/# TLS                      1/TLS    1/' /etc/pure-ftpd/pure-ftpd.conf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  yum install pure-ftpd -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error installing" && echo -e "[\033[31mX\033[0m] ($LINENO) Error installing" >> /tmp/server_log.txt
+  chkconfig --levels 235 pure-ftpd on >> $LOG 2>&1
+  /etc/init.d/pure-ftpd start >> $LOG 2>&1
+  yum install openssl -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error installing" && echo -e "[\033[31mX\033[0m] ($LINENO) Error installing" >> /tmp/server_log.txt
+  sed -i 's/# TLS                      1/TLS    1/' /etc/pure-ftpd/pure-ftpd.conf >> $LOG 2>&1
   echo -e "[\033[33m*\033[0m] Generating PureFTP SSL Certificate" && echo -e "[\033[33m*\033[0m] Generating PureFTP SSL Certificate" >> /tmp/server_log.txt
-  mkdir -p /etc/ssl/private/ >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  openssl req -new -newkey rsa:2048 -days 7300 -nodes -x509 -subj "/C=US/ST=California/L=Los Angeles/O=Questa Volta/CN=\'$hostname\'" -keyout /etc/ssl/private/pure-ftpd.pem -out /etc/ssl/private/pure-ftpd.pem >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  mkdir -p /etc/ssl/private/ >> $LOG 2>&1
+  openssl req -new -newkey rsa:2048 -days 7300 -nodes -x509 -subj "/C=US/ST=California/L=Los Angeles/O=Questa Volta/CN=\'$hostname\'" -keyout /etc/ssl/private/pure-ftpd.pem -out /etc/ssl/private/pure-ftpd.pem >> $LOG 2>&1
   echo -e "[\033[33m*\033[0m] Changing SSL Certificate Permissions" && echo -e "[\033[33m*\033[0m] Changing SSL Certificate Permissions" >> /tmp/server_log.txt
-  chmod 600 /etc/ssl/private/pure-ftpd.pem >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  chmod 600 /etc/ssl/private/pure-ftpd.pem >> $LOG 2>&1
   echo -e "[\033[33m*\033[0m] Restarting PureFTPD" && echo -e "[\033[33m*\033[0m] Restarting PureFTPD" >> /tmp/server_log.txt
-  /etc/init.d/pure-ftpd restart >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  /etc/init.d/pure-ftpd restart >> $LOG 2>&1
 
 }
 
 install_bind() {
   echo -e "[\033[33m*\033[0m] Installing BIND" && echo -e "[\033[33m*\033[0m] Installing BIND" >> /tmp/server_log.txt
-  yum install bind bind-utils -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing" >> /tmp/server_log.txt
+  yum install bind bind-utils -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error installing" >> /tmp/server_log.txt
   sed -re 'ROOTDIR=/var/named/chroot s/^#//' /etc/sysconfig/named >> $LOG 2>&1 # is this right??
-  cp /etc/named.conf /etc/named.conf_bak >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  cp /etc/named.conf /etc/named.conf_bak >> $LOG 2>&1
   cat <<EOF > /etc/named.conf
   //
   // named.conf
@@ -457,72 +464,72 @@ install_bind() {
 
 EOF
 
-  touch /etc/named.conf.local >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  touch /etc/named.conf.local >> $LOG 2>&1
   echo -e "[\033[33m*\033[0m] Generating key..."
-#   chkconfig --levels 235 named on >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-#   /etc/init.d/named start >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+#   chkconfig --levels 235 named on >> $LOG 2>&1
+#   /etc/init.d/named start >> $LOG 2>&1
 }
 
 install_python(){
   echo -e "[\033[33m*\033[0m] Installing Python..." && echo -e "[\033[33m*\033[0m] Installing Python..." >> /tmp/server_log.txt
-  yum install mod_python -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing" && echo -e "[\033[31mX\033[0m] Error installing" >> /tmp/server_log.txt
+  yum install mod_python -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error installing" && echo -e "[\033[31mX\033[0m] ($LINENO) Error installing" >> /tmp/server_log.txt
   echo -e "[\033[33m*\033[0m] Restarting Apache" && echo -e "[\033[33m*\033[0m] Restarting Apache" >> /tmp/server_log.txt
-  /etc/init.d/httpd restart >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  /etc/init.d/httpd restart >> $LOG 2>&1
 }
 
 
 
 install_awstat() {
   echo -e "[\033[33m*\033[0m] Setting up Webalizer and AWStats" && echo -e "[\033[33m*\033[0m] Setting up Webalizer and AWStats" >> /tmp/server_log.txt
-  yum install webalizer awstats perl-DateTime-Format-HTTP perl-DateTime-Format-Builder -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing" && echo -e "[\033[31mX\033[0m] Error installing" >> /tmp/server_log.txt
+  yum install webalizer awstats perl-DateTime-Format-HTTP perl-DateTime-Format-Builder -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error installing" && echo -e "[\033[31mX\033[0m] ($LINENO) Error installing" >> /tmp/server_log.txt
 }
 
 install_jailkit() {
   echo -e "[\033[33m*\033[0m] Installing Jailkit" && echo -e "[\033[33m*\033[0m] Installing Jailkit" >> /tmp/server_log.txt
-  cd /tmp >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  wget http://olivier.sessink.nl/jailkit/jailkit-2.16.tar.gz >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  tar xvfz jailkit-2.16.tar.gz >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  cd jailkit-2.16 >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  ./configure >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  make >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  make install >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  cd ..  >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  rm -rf jailkit-2.16* >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  cd /tmp >> $LOG 2>&1
+  wget http://olivier.sessink.nl/jailkit/jailkit-2.16.tar.gz >> $LOG 2>&1
+  tar xvfz jailkit-2.16.tar.gz >> $LOG 2>&1
+  cd jailkit-2.16 >> $LOG 2>&1
+  ./configure >> $LOG 2>&1
+  make >> $LOG 2>&1
+  make install >> $LOG 2>&1
+  cd ..  >> $LOG 2>&1
+  rm -rf jailkit-2.16* >> $LOG 2>&1
 }
 
 install_fail2ban() {
   echo -e "[\033[33m*\033[0m] Installing fail2ban & RootkitHunter" && echo -e "[\033[33m*\033[0m] Installing fail2ban & RootkitHunter" >> /tmp/server_log.txt
-  yum install fail2ban -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing" >> /tmp/server_log.txt
-  sed -i 's,logtarget = SYSLOG,logtarget = /var/log/fail2ban.log,' /etc/fail2ban/fail2ban.conf  >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/fail2ban/fail2ban.conf" && echo -e "[\033[31mX\033[0m] Error editing /etc/fail2ban/fail2ban.conf" >> /tmp/server_log.txt
-  chkconfig --levels 235 fail2ban on >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  yum install fail2ban -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error installing" >> /tmp/server_log.txt
+  sed -i 's,logtarget = SYSLOG,logtarget = /var/log/fail2ban.log,' /etc/fail2ban/fail2ban.conf  >> $LOG 2>&1
+  chkconfig --levels 235 fail2ban on >> $LOG 2>&1
   echo -e "[\033[33m*\033[0m] Starting fail2ban" && echo -e "[\033[33m*\033[0m] Starting fail2ban" >> /tmp/server_log.txt
-  /etc/init.d/fail2ban start >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  /etc/init.d/fail2ban start >> $LOG 2>&1
   echo -e "[\033[33m*\033[0m] Installing rkhunter" && echo -e "[\033[33m*\033[0m] Installing rkhunter" >> /tmp/server_log.txt
-  yum install rkhunter -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing" >> /tmp/server_log.txt
+  yum install rkhunter -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error installing" >> /tmp/server_log.txt
 }
 
 install_roundcube(){
   echo -e "[\033[33m*\033[0m] Installing Roundcube" && echo -e "[\033[33m*\033[0m] Installing Roundcube" >> /tmp/server_log.txt
-  mkdir /usr/share/webmail >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  cd /usr/share/webmail >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  wget http://jaist.dl.sourceforge.net/project/roundcubemail/roundcubemail/1.0.0/roundcubemail-1.0.0.tar.gz >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  tar -zxvf roundcubemail-1.0.0.tar.gz >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  rm -rf roundcubemail-1.0.0.tar.gz >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  shopt -s dotglob >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  mv -f roundcubemail-1.0.0/* . >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  rmdir roundcubemail-1.0.0 >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  mkdir /usr/share/webmail >> $LOG 2>&1
+  cd /usr/share/webmail >> $LOG 2>&1
+  wget http://jaist.dl.sourceforge.net/project/roundcubemail/roundcubemail/1.0.0/roundcubemail-1.0.0.tar.gz >> $LOG 2>&1
+  tar -zxvf roundcubemail-1.0.0.tar.gz >> $LOG 2>&1
+  rm -rf roundcubemail-1.0.0.tar.gz >> $LOG 2>&1
+  shopt -s dotglob >> $LOG 2>&1
+  mv -f roundcubemail-1.0.0/* . >> $LOG 2>&1
+  rmdir roundcubemail-1.0.0 >> $LOG 2>&1
 
-  wget http://jaist.dl.sourceforge.net/project/roundcubemail/roundcubemail/1.0.0/roundcube-framework-1.0.0.tar.gz >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  tar -zxvf roundcube-framework-1.0.0.tar.gz >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  wget http://jaist.dl.sourceforge.net/project/roundcubemail/roundcubemail/1.0.0/roundcube-framework-1.0.0.tar.gz >> $LOG 2>&1
+  tar -zxvf roundcube-framework-1.0.0.tar.gz >> $LOG 2>&1
 
-  mkdir /usr/share/roundcube/installer/Roundcube >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  cp /usr/share/webmail/roundcube-framework-1.0.0/bootstrap.php /usr/share/webmail/installer/Roundcube >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  mkdir /usr/share/roundcube/installer/Roundcube >> $LOG 2>&1
+  cp /usr/share/webmail/roundcube-framework-1.0.0/bootstrap.php /usr/share/webmail/installer/Roundcube >> $LOG 2>&1
 
-  chown root:root -R /usr/share/roundcube  >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  chmod 777 -R /usr/share/roundcube/temp/ >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  chmod 777 -R /usr/share/roundcube/logs/ >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  chown root:root -R /usr/share/roundcube  >> $LOG 2>&1
+  chmod 777 -R /usr/share/roundcube/temp/ >> $LOG 2>&1
+  chmod 777 -R /usr/share/roundcube/logs/ >> $LOG 2>&1
 
-  cp /etc/httpd/conf/sites-enabled/000-ispconfig.conf /etc/httpd/conf/sites-enabled/000-ispconfig.conf.bak >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  cp /etc/httpd/conf/sites-enabled/000-ispconfig.conf /etc/httpd/conf/sites-enabled/000-ispconfig.conf.bak >> $LOG 2>&1
 
   cat <<EOF >> /etc/httpd/conf/sites-enabled/000-ispconfig.conf
   <Directory /usr/share/roundcube>
@@ -564,28 +571,28 @@ EOF
 EOF
 
   echo -e "[\033[33m*\033[0m] Restarting Apache" && echo -e "[\033[33m*\033[0m] restarting Apache" >> /tmp/server_log.txt
-  service httpd restart >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error restarting Apache" && echo -e "[\033[31mX\033[0m] Error restarting Apache" >> /tmp/server_log.txt
+  service httpd restart >> $LOG 2>&1
   
-  yum -y install libicu-devel >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error installing libicu-devel" && echo -e "[\033[31mX\033[0m] Error installing libicu-devel" >> /tmp/server_log.txt
-  yum -y install php-intl >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error installing php-intl" && echo -e "[\033[31mX\033[0m] Error installing php-intl" >> /tmp/server_log.txt
+  yum -y install libicu-devel >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] ($LINENO) Error installing libicu-devel" && echo -e "[\033[31mX\033[0m] ($LINENO) Error installing libicu-devel" >> /tmp/server_log.txt
+  yum -y install php-intl >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] ($LINENO) Error installing php-intl" && echo -e "[\033[31mX\033[0m] ($LINENO) Error installing php-intl" >> /tmp/server_log.txt
   
-  cp /etc/php.ini /etc/php.ini.bak >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  cp /etc/php.ini /etc/php.ini.bak >> $LOG 2>&1
   
-  sed -i 's#\;date\.timezone =#date.timezone = America/Los_Angeles#' /etc/php.ini >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing /etc/php.ini (changing timezone)" && echo -e "[\033[31mX\033[0m] Error editing /etc/php.ini (changing timezone)" >> /tmp/server_log.txt
-  sed -i 's#bc#/usr/share/roundcube/program/include/bc#' /usr/share/webmail/installer/index.php >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing installer/index.php" && echo -e "[\033[31mX\033[0m] Error editing installer/index.php" >> /tmp/server_log.txt
+  sed -i 's#\;date\.timezone =#date.timezone = America/Los_Angeles#' /etc/php.ini >> $LOG 2>&
+  sed -i 's#bc#/usr/share/roundcube/program/include/bc#' /usr/share/webmail/installer/index.php >> $LOG 2>&1
 
   echo -e "[\033[33m*\033[0m] Restarting Apache" && echo -e "[\033[33m*\033[0m] restarting Apache" >> /tmp/server_log.txt
-  service httpd restart >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error restarting Apache" && echo -e "[\033[31mX\033[0m] Error restarting Apache" >> /tmp/server_log.txt
+  service httpd restart >> $LOG 2>&1
     
   dbUser=roundcube_u1
   dbPass=$(pword)
   dbName=roundcubedb
   
 #   create Roundcube DB
-  MySQLCreateDB $dbName $dbUser $dbPass  >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error creating Roundcube DB" && echo -e "[\033[31mX\033[0m] Error restarting Roundcube DB" >> /tmp/server_log.txt
+  MySQLCreateDB $dbName $dbUser $dbPass  >> $LOG 2>&1
   
 #   Initialize Roundcube DB
-  mysql -u $dbUser -p$dbPass -h localhost $dbName < /usr/share/webmail/SQL/mysql.initial.sql || echo -e "[\033[31mX\033[0m] Error initializing Roundcube DB" && echo -e "[\033[31mX\033[0m] Error initializing Roundcube DB" >> /tmp/server_log.txt
+  mysql -u $dbUser -p$dbPass -h localhost $dbName < /usr/share/webmail/SQL/mysql.initial.sql || echo -e "[\033[31mX\033[0m] ($LINENO) Error initializing Roundcube DB" && echo -e "[\033[31mX\033[0m] ($LINENO) Error initializing Roundcube DB" >> /tmp/server_log.txt
     
   smtpPass=$(pword)
 
@@ -654,91 +661,94 @@ initialize_ISPConfig(){
   
 #   Create remote user
   RM_PASS=$(pword)
-  MySQLCreateRemoteISPConfigUser admin $RM_PASS
+  RM_USER='admin'
+  MySQLCreateRemoteISPConfigUser $RM_USER $RM_PASS
   
 #   Modify remoting config
-  sed -i "s/192.168.0.105/localhost/g" soap_config.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing soap_config.php"
+  sed -i "s/192.168.0.105/localhost/g" soap_config.php >> $LOG 2>&1
+  sed -i "s/password = 'admin/$RM_PASS/g" soap_config.php >> $LOG 2>&1
   
 #   change cp password
-  adminPass=$(pword)
+#   adminPass=$(pword)
+  adminPass='perf0011'
   MySQLChangeCPAdminPass $adminPass
 
 #   add client
 
   clientPW=$(pword)
   clientUN=$servername
-  sed -i "s/awesomecompany/$servername/g" client_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing client_add.php" && echo -e "[\033[31mX\033[0m] Error editing client_add.php" >> /tmp/server_log.txt
-  sed -i "s/name/$hostname/g" client_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing client_add.php" && echo -e "[\033[31mX\033[0m] Error editing client_add.php" >> /tmp/server_log.txt
-  sed -i "s/fleetstreet//g" client_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing client_add.php" && echo -e "[\033[31mX\033[0m] Error editing client_add.php" >> /tmp/server_log.txt
-  sed -i "s/21337//g" client_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing client_add.php" && echo -e "[\033[31mX\033[0m] Error editing client_add.php" >> /tmp/server_log.txt
-  sed -i "s/london//g" client_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing client_add.php" && echo -e "[\033[31mX\033[0m] Error editing client_add.php" >> /tmp/server_log.txt
-  sed -i "s/bavaria//g" client_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing client_add.php" && echo -e "[\033[31mX\033[0m] Error editing client_add.php" >> /tmp/server_log.txt
-  sed -i "s/GB/US/g" client_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing client_add.php" && echo -e "[\033[31mX\033[0m] Error editing client_add.php" >> /tmp/server_log.txt
-  sed -i "s/123456789//g" client_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing client_add.php" && echo -e "[\033[31mX\033[0m] Error editing client_add.php" >> /tmp/server_log.txt
-  sed -i "s/987654321//g" client_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing client_add.php" && echo -e "[\033[31mX\033[0m] Error editing client_add.php" >> /tmp/server_log.txt
-  sed -i "s/546718293//g" client_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing client_add.php" && echo -e "[\033[31mX\033[0m] Error editing client_add.php" >> /tmp/server_log.txt
-  sed -i "s/e@mail\.int/support@webstudioswest\.com/g" client_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing client_add.php" && echo -e "[\033[31mX\033[0m] Error editing client_add.php" >> /tmp/server_log.txt
-  sed -i "s/111111111//g" client_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing client_add.php" && echo -e "[\033[31mX\033[0m] Error editing client_add.php" >> /tmp/server_log.txt
-  sed -i "s/awesome//g" client_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing client_add.php" && echo -e "[\033[31mX\033[0m] Error editing client_add.php" >> /tmp/server_log.txt
-  sed -i "s/guy3/$clientUN/g" client_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing client_add.php" && echo -e "[\033[31mX\033[0m] Error editing client_add.php" >> /tmp/server_log.txt
-  sed -i "s/brush/$clientPW/g" client_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing client_add.php" && echo -e "[\033[31mX\033[0m] Error editing client_add.php" >> /tmp/server_log.txt
+  sed -i "s/awesomecompany/$servername/g" client_add.php >> $LOG 2>&1
+  sed -i "s/name/$hostname/g" client_add.php >> $LOG 2>&1
+  sed -i "s/fleetstreet//g" client_add.php >> $LOG 2>&1
+  sed -i "s/21337//g" client_add.php >> $LOG 2>&1
+  sed -i "s/london//g" client_add.php >> $LOG 2>&1
+  sed -i "s/bavaria//g" client_add.php >> $LOG 2>&1
+  sed -i "s/GB/US/g" client_add.php >> $LOG 2>&1
+  sed -i "s/123456789//g" client_add.php >> $LOG 2>&1
+  sed -i "s/987654321//g" client_add.php >> $LOG 2>&1
+  sed -i "s/546718293//g" client_add.php >> $LOG 2>&1
+  sed -i "s/e@mail\.int/support@webstudioswest\.com/g" client_add.php >> $LOG 2>&1
+  sed -i "s/111111111//g" client_add.php >> $LOG 2>&1
+  sed -i "s/awesome//g" client_add.php >> $LOG 2>&1
+  sed -i "s/guy3/$clientUN/g" client_add.php >> $LOG 2>&1
+  sed -i "s/brush/$clientPW/g" client_add.php >> $LOG 2>&1
   
-  php client_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error: Could not successfully add client to ISP Config" && echo -e "[\033[31mX\033[0m] Error: Could not successfully add client to ISP Config" >> /tmp/server_log.txt
-  
+  php client_add.php >> $LOG 2>&1
+    
 #   add site
   ipAddress="$(curl ifconfig.me)" #   resolve ip address
-  sed -i "s/=> '\*'/=> '$ipAddress'/g" sites_web_domain_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing sites_web_domain_add.php" && echo -e "[\033[31mX\033[0m] Error editing sites_web_domain_add.php" >> /tmp/server_log.txt
-  sed -i "s/domain/$hostname/g" sites_web_domain_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing sites_web_domain_add.php" && echo -e "[\033[31mX\033[0m] Error editing sites_web_domain_add.php" >> /tmp/server_log.txt
-  sed -i "s/100000/-1/g" sites_web_domain_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing sites_web_domain_add.php" && echo -e "[\033[31mX\033[0m] Error editing sites_web_domain_add.php" >> /tmp/server_log.txt
-  sed -i "s/cgi' => 'y'/cgi' => 'n'/g" sites_web_domain_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing sites_web_domain_add.php" && echo -e "[\033[31mX\033[0m] Error editing sites_web_domain_add.php" >> /tmp/server_log.txt
-  sed -i "s/ssi' => 'y'/ssi' => 'n'/g" sites_web_domain_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing sites_web_domain_add.php" && echo -e "[\033[31mX\033[0m] Error editing sites_web_domain_add.php" >> /tmp/server_log.txt
-  sed -i "s/php' => 'y/php' => 'mod/g" sites_web_domain_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing sites_web_domain_add.php" && echo -e "[\033[31mX\033[0m] Error editing sites_web_domain_add.php" >> /tmp/server_log.txt
-  sed -i "s/ssl_state' => '/ssl_state' => 'CA/g" sites_web_domain_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing sites_web_domain_add.php" && echo -e "[\033[31mX\033[0m] Error editing sites_web_domain_add.php" >> /tmp/server_log.txt
-  sed -i "s/ssl_locality' => '/ssl_locality' => 'Los Angeles/g" sites_web_domain_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing sites_web_domain_add.php" && echo -e "[\033[31mX\033[0m] Error editing sites_web_domain_add.php" >> /tmp/server_log.txt
-  sed -i "s/ssl_organisation' => '/ssl_organisation' => '$servername/g" sites_web_domain_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing sites_web_domain_add.php" && echo -e "[\033[31mX\033[0m] Error editing sites_web_domain_add.php" >> /tmp/server_log.txt
-  sed -i "s/ssl_organisation_unit' => '/ssl_organisation_unit' => 'Web/g" sites_web_domain_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing sites_web_domain_add.php" && echo -e "[\033[31mX\033[0m] Error editing sites_web_domain_add.php" >> /tmp/server_log.txt
-  sed -i "s/ssl_country' => '/ssl_country' => 'US/g" sites_web_domain_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing sites_web_domain_add.php" && echo -e "[\033[31mX\033[0m] Error editing sites_web_domain_add.php" >> /tmp/server_log.txt
-  sed -i "s/ssl_domain' => '/ssl_domain' => '$hostname/g" sites_web_domain_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing sites_web_domain_add.php" && echo -e "[\033[31mX\033[0m] Error editing sites_web_domain_add.php" >> /tmp/server_log.txt
-  sed -i "s/ssl_action' => '/ssl_action' => 'create/g" sites_web_domain_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing sites_web_domain_add.php" && echo -e "[\033[31mX\033[0m] Error editing sites_web_domain_add.php" >> /tmp/server_log.txt
+  sed -i "s/=> '\*'/=> '$ipAddress'/g" sites_web_domain_add.php >> $LOG 2>&1
+  sed -i "s/domain/$hostname/g" sites_web_domain_add.php >> $LOG 2>&1
+  sed -i "s/100000/-1/g" sites_web_domain_add.php >> $LOG 2>&1
+  sed -i "s/cgi' => 'y'/cgi' => 'n'/g" sites_web_domain_add.php >> $LOG 2>&1
+  sed -i "s/ssi' => 'y'/ssi' => 'n'/g" sites_web_domain_add.php >> $LOG 2>&1
+  sed -i "s/php' => 'y/php' => 'mod/g" sites_web_domain_add.php >> $LOG 2>&1
+  sed -i "s/ssl_state' => '/ssl_state' => 'CA/g" sites_web_domain_add.php >> $LOG 2>&1
+  sed -i "s/ssl_locality' => '/ssl_locality' => 'Los Angeles/g" sites_web_domain_add.php >> $LOG 2>&1
+  sed -i "s/ssl_organisation' => '/ssl_organisation' => '$servername/g" sites_web_domain_add.php >> $LOG 2>&1
+  sed -i "s/ssl_organisation_unit' => '/ssl_organisation_unit' => 'Web/g" sites_web_domain_add.php >> $LOG 2>&1
+  sed -i "s/ssl_country' => '/ssl_country' => 'US/g" sites_web_domain_add.php >> $LOG 2>&1
+  sed -i "s/ssl_domain' => '/ssl_domain' => '$hostname/g" sites_web_domain_add.php >> $LOG 2>&1
+  sed -i "s/ssl_action' => '/ssl_action' => 'create/g" sites_web_domain_add.php >> $LOG 2>&1
 
-  php sites_web_domain_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error: Could not successfully add site to ISP Config" && echo -e "[\033[31mX\033[0m] Error: Could not successfully add site to ISP Config" >> /tmp/server_log.txt
-  
+  php sites_web_domain_add.php >> $LOG 2>&1
+    
 #   add db
-  sed -i "s/db_name2/site_db/g" sites_database_add.php
+  sed -i "s/db_name2/site_db/g" sites_database_add.php >> $LOG 2>&1
   
   siteDBuser='site_DB_u1'
   dbUserPW=$(pword)
-  sed -i "s/database_user' => 'db_name2/database_user' => '$siteDBuser/g" sites_database_user_add.php
-  sed -i "s/database_password' => 'db_name2/database_password' => '$dbUserPW/g" sites_database_user_add.php
-  php sites_database_user_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error: Could not successfully add DB User to ISP Config" && echo -e "[\033[31mX\033[0m] Error: Could not successfully add DB User to ISP Config" >> /tmp/server_log.txt
+  sed -i "s/database_user' => 'db_name2/database_user' => '$siteDBuser/g" sites_database_user_add.php >> $LOG 2>&1
+  sed -i "s/database_password' => 'db_name2/database_password' => '$dbUserPW/g" sites_database_user_add.php >> $LOG 2>&1
+  php sites_database_user_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error: Could not successfully add DB User to ISP Config" && echo -e "[\033[31mX\033[0m] ($LINENO) Error: Could not successfully add DB User to ISP Config" >> /tmp/server_log.txt
   
   DBuserID=1
   dbName='site_db'
-  sed -i "s/db_name2/$dbName/g" sites_database_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing sites_database_add.php" && echo -e "[\033[31mX\033[0m] Error editing sites_database_add.php" >> /tmp/server_log.txt
-  sed -i "s/database_user_id' => '1/database_user_id' => '$DBuserID/g" sites_database_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing sites_database_add.php" && echo -e "[\033[31mX\033[0m] Error editing sites_database_add.php" >> /tmp/server_log.txt
-  php sites_database_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error: Could not successfully add DB to ISP Config" && echo -e "[\033[31mX\033[0m] Error: Could not successfully add DB to ISP Config" >> /tmp/server_log.txt
+  sed -i "s/db_name2/$dbName/g" sites_database_add.php >> $LOG 2>&1
+  sed -i "s/database_user_id' => '1/database_user_id' => '$DBuserID/g" sites_database_add.php >> $LOG 2>&1
+  php sites_database_add.php >> $LOG 2>&1
 
 #   add ftp usr
   ftpShellUsr=${servername}_com_${servername}  
   ftpShellPass=$(pword)
   
-  sed -i "s/threep/$ftpShellUsr/g" sites_ftp_user_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing sites_ftp_user_add.php" && echo -e "[\033[31mX\033[0m] Error editing sites_ftp_user_add.php" >> /tmp/server_log.txt
-  sed -i "s/wood/$ftpShellPass/g" sites_ftp_user_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing sites_ftp_user_add.php" && echo -e "[\033[31mX\033[0m] Error editing sites_ftp_user_add.php" >> /tmp/server_log.txt
-  sed -i "s#maybe#/var/www/clients/client1/web1#g" sites_ftp_user_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing sites_ftp_user_add.php" && echo -e "[\033[31mX\033[0m] Error editing sites_ftp_user_add.php" >> /tmp/server_log.txt
-  sed -i "s/uid' => '5000/uid' => 'web1/g" sites_ftp_user_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing sites_ftp_user_add.php" && echo -e "[\033[31mX\033[0m] Error editing sites_ftp_user_add.php" >> /tmp/server_log.txt
-  sed -i "s/gid' => '5000/gid' => 'client1/g" sites_ftp_user_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing sites_ftp_user_add.php" && echo -e "[\033[31mX\033[0m] Error editing sites_ftp_user_add.php" >> /tmp/server_log.txt
-  sed -i "s/10000/-1/g" sites_ftp_user_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing sites_ftp_user_add.php" && echo -e "[\033[31mX\033[0m] Error editing sites_ftp_user_add.php" >> /tmp/server_log.txt
+  sed -i "s/threep/$ftpShellUsr/g" sites_ftp_user_add.php >> $LOG 2>&1
+  sed -i "s/wood/$ftpShellPass/g" sites_ftp_user_add.php >> $LOG 2>&1
+  sed -i "s#maybe#/var/www/clients/client1/web1#g" sites_ftp_user_add.php >> $LOG 2>&1
+  sed -i "s/uid' => '5000/uid' => 'web1/g" sites_ftp_user_add.php >> $LOG 2>&1
+  sed -i "s/gid' => '5000/gid' => 'client1/g" sites_ftp_user_add.php >> $LOG 2>&1
+  sed -i "s/10000/-1/g" sites_ftp_user_add.php >> $LOG 2>&1
   
-  php sites_ftp_user_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error adding FTP user" && echo -e "[\033[31mX\033[0m] Error adding FTP user" >> /tmp/server_log.txt
+  php sites_ftp_user_add.php >> $LOG 2>&1
 
 #   add shell usr
-  sed -i "s/threep2/$ftpShellUsr/g" sites_shell_user_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing sites_shell_user_add.php" && echo -e "[\033[31mX\033[0m] Error editing sites_shell_user_add.php" >> /tmp/server_log.txt
-  sed -i "s/wood/$ftpShellPass/g" sites_shell_user_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing sites_shell_user_add.php" && echo -e "[\033[31mX\033[0m] Error editing sites_shell_user_add.php" >> /tmp/server_log.txt
-  sed -i "s#maybe#/var/www/clients/client1/web1#g" sites_shell_user_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing sites_shell_user_add.php" && echo -e "[\033[31mX\033[0m] Error editing sites_shell_user_add.php" >> /tmp/server_log.txt
-  sed -i "s/chroot' => '/chroot' => 'no/g" sites_shell_user_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing sites_shell_user_add.php" && echo -e "[\033[31mX\033[0m] Error editing sites_shell_user_add.php" >> /tmp/server_log.txt
-  sed -i "s/10000/-1/g" sites_shell_user_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing sites_shell_user_add.php" && echo -e "[\033[31mX\033[0m] Error editing sites_shell_user_add.php" >> /tmp/server_log.txt
+  sed -i "s/threep2/$ftpShellUsr/g" sites_shell_user_add.php >> $LOG 2>&1
+  sed -i "s/wood/$ftpShellPass/g" sites_shell_user_add.php >> $LOG 2>&1
+  sed -i "s#maybe#/var/www/clients/client1/web1#g" sites_shell_user_add.php >> $LOG 2>&1
+  sed -i "s/chroot' => '/chroot' => 'no/g" sites_shell_user_add.php >> $LOG 2>&1
+  sed -i "s/10000/-1/g" sites_shell_user_add.php >> $LOG 2>&1
   
-  php sites_shell_user_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error adding shell user" && echo -e "[\033[31mX\033[0m] Error adding shell user" >> /tmp/server_log.txt
+  php sites_shell_user_add.php >> $LOG 2>&1
   
     cat - > /tmp/credentials.conf <<EOF
   <br>
@@ -807,6 +817,18 @@ initialize_ISPConfig(){
       <td>Shell Password:</td>
       <td>$ftpShellPass</td>
     </tr>
+    <tr>
+      <td>Remote User UN:</td>
+      <td>$RM_USER</td>
+    </tr>
+    <tr>
+      <td>Remote User Password:</td>
+      <td>$RM_PASS</td>
+    </tr>
+     <tr>
+      <td>Admin CP Pass:</td>
+      <td>$adminPass</td>
+    </tr>
   </table>
 EOF
   
@@ -816,9 +838,9 @@ EOF
 
 install_squirrelmail(){
   echo -e "[\033[33m*\033[0m] Installing SquirrelMail" && echo -e "[\033[33m*\033[0m] Installing SquirrelMail" >> /tmp/server_log.txt
-  yum install squirrelmail -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing SquirrelMail" && echo -e "[\033[31mX\033[0m] Error installing SquirrelMail" >> /tmp/server_log.txt
+  yum install squirrelmail -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error installing SquirrelMail" && echo -e "[\033[31mX\033[0m] ($LINENO) Error installing SquirrelMail" >> /tmp/server_log.txt
   echo -e "[\033[33m*\033[0m] Restarting Apache" && echo -e "[\033[33m*\033[0m] Restarting Apache" >> /tmp/server_log.txt
-  /etc/init.d/httpd restart >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  /etc/init.d/httpd restart >> $LOG 2>&1
   sed -i '/$default_folder_prefix/d' /etc/squirrelmail/config_local.php
 
   echo "Please configure SquirrelMail! Commands are as follows:"
@@ -836,19 +858,19 @@ install_squirrelmail(){
 
 install_cyrus(){
   echo -e "[\033[33m*\033[0m] Installing Cyrus" && echo -e "[\033[33m*\033[0m] Installing Cyrus" >> /tmp/server_log.txt
-  yum install cyrus-sasl* -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing Cyrus" && echo -e "[\033[31mX\033[0m] Error installing Cyrus" >> /tmp/server_log.txt
-  yum install perl-DateTime-Format* -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing Cyrus" && echo -e "[\033[31mX\033[0m] Error installing Cyrus" >> /tmp/server_log.txt
+  yum install cyrus-sasl* -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error installing Cyrus" && echo -e "[\033[31mX\033[0m] ($LINENO) Error installing Cyrus" >> /tmp/server_log.txt
+  yum install perl-DateTime-Format* -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error installing Cyrus" && echo -e "[\033[31mX\033[0m] ($LINENO) Error installing Cyrus" >> /tmp/server_log.txt
 }
 install_ruby(){
   echo -e "[\033[33m*\033[0m] Installing Ruby" && echo -e "[\033[33m*\033[0m] Installing Ruby" >> /tmp/server_log.txt
-  yum install httpd-devel ruby ruby-devel -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing Ruby" && echo -e "[\033[31mX\033[0m] Error installing Ruby" >> /tmp/server_log.txt
+  yum install httpd-devel ruby ruby-devel -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error installing Ruby" && echo -e "[\033[31mX\033[0m] ($LINENO) Error installing Ruby" >> /tmp/server_log.txt
   cd /tmp $LOG 2>&1
-  wget http://fossies.org/unix/www/apache_httpd_modules/mod_ruby-1.3.0.tar.gz >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  tar zxvf mod_ruby-1.3.0.tar.gz >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  cd mod_ruby-1.3.0/ >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  ./configure.rb --with-apr-includes=/usr/include/apr-1 >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  make >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  make install >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  wget http://fossies.org/unix/www/apache_httpd_modules/mod_ruby-1.3.0.tar.gz >> $LOG 2>&1
+  tar zxvf mod_ruby-1.3.0.tar.gz >> $LOG 2>&1
+  cd mod_ruby-1.3.0/ >> $LOG 2>&1
+  ./configure.rb --with-apr-includes=/usr/include/apr-1 >> $LOG 2>&1
+  make >> $LOG 2>&1
+  make install >> $LOG 2>&1
   
 cat <<EOF > /etc/httpd/conf.d/ruby.conf
   LoadModule ruby_module modules/mod_ruby.so
@@ -856,53 +878,53 @@ cat <<EOF > /etc/httpd/conf.d/ruby.conf
 
 EOF
   echo -e "[\033[33m*\033[0m] Restarting Apache" && echo -e "[\033[33m*\033[0m] Restarting Apache" >> /tmp/server_log.txt
-  /etc/init.d/httpd restart >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error Restarting Apache - Check Logs" && echo -e "[\033[31mX\033[0m] Error Restarting Apache - Check Logs" >> /tmp/server_log.txt
+  /etc/init.d/httpd restart >> $LOG 2>&1
 }
 
 configure_webdav(){
-  sed -i -e "s,#\(#LoadModule auth_digest_module modules/mod_auth_digest.so\),\1,g" /etc/httpd/conf/httpd.conf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf" && echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf" >> /tmp/server_log.txt
-  sed -i -e "s,#\(#LoadModule dav_module modules/mod_dav.so\),\1,g" /etc/httpd/conf/httpd.conf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf" && echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf" >> /tmp/server_log.txt
-  sed -i -e "s,#\(#LoadModule dav_fs_module modules/mod_dav_fs.so\),\1,g" /etc/httpd/conf/httpd.conf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf" && echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf" >> /tmp/server_log.txt
+  sed -i -e "s,#\(#LoadModule auth_digest_module modules/mod_auth_digest.so\),\1,g" /etc/httpd/conf/httpd.conf >> $LOG 2>&1
+  sed -i -e "s,#\(#LoadModule dav_module modules/mod_dav.so\),\1,g" /etc/httpd/conf/httpd.conf >> $LOG 2>&1
+  sed -i -e "s,#\(#LoadModule dav_fs_module modules/mod_dav_fs.so\),\1,g" /etc/httpd/conf/httpd.conf >> $LOG 2>&1
   
   }
 
 install_unzip(){
   echo -e "[\033[33m*\033[0m] Installing unzip, bzip2, unrar, perl DBD" && echo -e "[\033[33m*\033[0m] Installing unzip, bzip2, unrar, perl DBD" >> /tmp/server_log.txt
-  yum install unzip bzip2 unrar perl-DBD-mysql -y >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  yum install unzip bzip2 unrar perl-DBD-mysql -y >> $LOG 2>&1
 }
 
 send_install_report(){
-  wget -O /tmp/email-template.html https://raw.githubusercontent.com/nicktrela/qv-server-install/master/QV%20Email%20Template.html >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error downloading email template"
+  wget -O /tmp/email-template.html https://raw.githubusercontent.com/nicktrela/qv-server-install/master/QV%20Email%20Template.html >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error downloading email template"
   cd /tmp
-  sed -i "s/{{hostname}}/$variable/g" /tmp/email-template.html >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /tmp/email-template.html"
+  sed -i "s/{{hostname}}/$variable/g" /tmp/email-template.html >> $LOG 2>&1
   sed -ri "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g" /tmp/server_log.txt
   sed -ri "s/\[\*\]/<br><span style="color:green">Run: <\/span>/g" /tmp/server_log.txt
-  sed -ri "s/\[\X\]/<br><span style="color:red">Failed: <\/span>/g" /tmp/server_log.txt
+  sed -ri "s/\[\X\]/<br><span id="failed">Error: <\/span>/g" /tmp/server_log.txt
   perl -pe 's/serverLog/`cat server_log.txt`/ge' -i /tmp/email-template.html
   perl -pe 's/install_credentials/`cat credentials.conf`/ge' -i /tmp/email-template.html
-  mail -s "$(echo -e "$hostname was set up successfully\nContent-Type: text/html")" nick@questavolta.com < /tmp/email-template.html
+  mail -s "$(echo -e "IMPORTANT! Save this email! $hostname was set up successfully.\nContent-Type: text/html")" nick@questavolta.com < /tmp/email-template.html
   rm -rf /tmp/email-template.html
 }
 
 install_locate(){
   echo -e "[\033[33m*\033[0m] Installing locate" && echo -e "[\033[33m*\033[0m] Installing locate" >> /tmp/server_log.txt
-  yum install mlocate -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error installing locate" && echo -e "[\033[31mX\033[0m] Error installing locate" >> /tmp/server_log.txt
+  yum install mlocate -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error installing locate" && echo -e "[\033[31mX\033[0m] ($LINENO) Error installing locate" >> /tmp/server_log.txt
   echo -e "[\033[33m*\033[0m] Updating db" >> /tmp/server_log.txt
-  updatedb ||  echo -e "[\033[31mX\033[0m] Error updating db" && echo -e "[\033[31mX\033[0m] Error updating db" >> /tmp/server_log.txt
+  updatedb ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error updating db" && echo -e "[\033[31mX\033[0m] ($LINENO) Error updating db" >> /tmp/server_log.txt
 }
 
 script_update_1(){
-  sed -i 's/Timeout 60/Timeout 2/g' /etc/httpd/conf/httpd.conf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf" && echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf" >> /tmp/server_log.txt
-  sed -i 's/MaxRequestsPerChild  4000/MaxRequestsPerChild  1000/g' /etc/httpd/conf/httpd.conf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf" && echo -e "[\033[31mX\033[0m] Error editing /etc/httpd/conf/httpd.conf" >> /tmp/server_log.txt
-  service httpd restart >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error restarting httpd" && echo -e "[\033[31mX\033[0m] Error restarting httpd" >> /tmp/server_log.txt
-  sed -i 's/apc.shm_size=64M/apc.shm_size=128M/g' /etc/php.d/apc.ini >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/php.d/apc.ini" && echo -e "[\033[31mX\033[0m] Error editing /etc/php.d/apc.ini" >> /tmp/server_log.txt
-  sed -i 's/apc.num_files_hint=1024/apc.num_files_hint=10024/g' /etc/php.d/apc.ini >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/php.d/apc.ini" && echo -e "[\033[31mX\033[0m] Error editing /etc/php.d/apc.ini" >> /tmp/server_log.txt
-  sed -i 's/apc.user_entries_hint=4096/apc.user_entries_hint=40096/g' /etc/php.d/apc.ini >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/php.d/apc.ini" && echo -e "[\033[31mX\033[0m] Error editing /etc/php.d/apc.ini" >> /tmp/server_log.txt
-  sed -i 's/apc.enable_cli=0/apc.enable_cli=1/g' /etc/php.d/apc.ini >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/php.d/apc.ini" && echo -e "[\033[31mX\033[0m] Error editing /etc/php.d/apc.ini" >> /tmp/server_log.txt
-  sed -i 's/apc.enable_cli=0/apc.enable_cli=1/g' /etc/php.d/apc.ini >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/php.d/apc.ini" && echo -e "[\033[31mX\033[0m] Error editing /etc/php.d/apc.ini" >> /tmp/server_log.txt
-  sed -i 's/apc.max_file_size=1M/apc.max_file_size=8M/g' /etc/php.d/apc.ini >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/php.d/apc.ini" && echo -e "[\033[31mX\033[0m] Error editing /etc/php.d/apc.ini" >> /tmp/server_log.txt
-  sed -i 's/apc.stat=1/apc.stat=0/g' /etc/php.d/apc.ini >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/php.d/apc.ini" && echo -e "[\033[31mX\033[0m] Error editing /etc/php.d/apc.ini" >> /tmp/server_log.txt
-  service httpd restart >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error restarting httpd" && echo -e "[\033[31mX\033[0m] Error restarting httpd" >> /tmp/server_log.txt
+  sed -i 's/Timeout 60/Timeout 2/g' /etc/httpd/conf/httpd.conf >> $LOG 2>&1
+  sed -i 's/MaxRequestsPerChild  4000/MaxRequestsPerChild  1000/g' /etc/httpd/conf/httpd.conf >> $LOG 2>&1
+  service httpd restart >> $LOG 2>&1
+  sed -i 's/apc.shm_size=64M/apc.shm_size=128M/g' /etc/php.d/apc.ini >> $LOG 2>&1
+  sed -i 's/apc.num_files_hint=1024/apc.num_files_hint=10024/g' /etc/php.d/apc.ini >> $LOG 2>&1
+  sed -i 's/apc.user_entries_hint=4096/apc.user_entries_hint=40096/g' /etc/php.d/apc.ini >> $LOG 2>&1
+  sed -i 's/apc.enable_cli=0/apc.enable_cli=1/g' /etc/php.d/apc.ini >> $LOG 2>&1
+  sed -i 's/apc.enable_cli=0/apc.enable_cli=1/g' /etc/php.d/apc.ini >> $LOG 2>&1
+  sed -i 's/apc.max_file_size=1M/apc.max_file_size=8M/g' /etc/php.d/apc.ini >> $LOG 2>&1
+  sed -i 's/apc.stat=1/apc.stat=0/g' /etc/php.d/apc.ini >> $LOG 2>&1
+  service httpd restart >> $LOG 2>&1
   
   sed -i '/symbolic-links=0/a\
     query_cache_size = 128M\
@@ -914,60 +936,88 @@ script_update_1(){
     innodb_buffer_pool_size = 512M
   ' /etc/my.cnf
   echo -e "[\033[33m*\033[0m] Restarting mysql" && echo -e "[\033[33m*\033[0m] Restarting mysql" >> /tmp/server_log.txt
-  service mysqld restart >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error restarting mysql" && echo -e "[\033[31mX\033[0m] Error restarting mysql" >> /tmp/server_log.txt
+  service mysqld restart >> $LOG 2>&1
 }
 
 script_update_2(){
-  sed -i 's/hash:\/etc\/mailman\/virtual-mailman, //g' /etc/postfix/main.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/main.cf" && echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/main.cf" >> /tmp/server_log.txt
-  sed -i 's/content_filter = amavis/#content_filter = amavis/g' /etc/postfix/main.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/main.cf" && echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/main.cf" >> /tmp/server_log.txt
-  sed -i 's/receive_override_options = no_address_mappings/#receive_override_options = no_address_mappings/g' /etc/postfix/main.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/main.cf" &&  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/main.cf" >> /tmp/server_log.txt
+  sed -i 's/hash:\/etc\/mailman\/virtual-mailman, //g' /etc/postfix/main.cf >> $LOG 2>&1
+  sed -i 's/content_filter = amavis/#content_filter = amavis/g' /etc/postfix/main.cf >> $LOG 2>&1
+  sed -i 's/receive_override_options = no_address_mappings/#receive_override_options = no_address_mappings/g' /etc/postfix/main.cf >> $LOG 2>&1
 
   echo -e "[\033[33m*\033[0m] Disable clamav / amavis" >> /tmp/server_log.txt
-  sed -i 's/amavis unix - - - - 2 smtp/#amavis unix - - - - 2 smtp/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf" && echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf" >> /tmp/server_log.txt
-  sed -i 's/-o smtp_data_done_timeout=1200/#-o smtp_data_done_timeout=1200/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf" && echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf" >> /tmp/server_log.txt
-  sed -i 's/-o smtp_send_xforward_command=yes/#-o smtp_send_xforward_command=yes/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf" && echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf" >> /tmp/server_log.txt
-  sed -i 's/127.0.0.1:10025 inet n - - - - smtpd/#127.0.0.1:10025 inet n - - - - smtpd/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf" && echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf" >> /tmp/server_log.txt
-  sed -i 's/-o content_filter=/#-o content_filter=/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf" && echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf" >> /tmp/server_log.txt
-  sed -i 's/-o local_recipient_maps=/#-o local_recipient_maps=/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf" && echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"  >> /tmp/server_log.txt
-  sed -i 's/-o relay_recipient_maps=/#-o relay_recipient_maps=/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf" && echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf"  >> /tmp/server_log.txt
-  sed -i 's/-o smtpd_restriction_classes=/#-o smtpd_restriction_classes=/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf" && echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf" >> /tmp/server_log.txt
-  sed -i 's/-o smtpd_client_restrictions=/#-o smtpd_client_restrictions=/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf" && echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf" >> /tmp/server_log.txt
-  sed -i 's/-o smtpd_helo_restrictions=/#-o smtpd_helo_restrictions=/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf" && echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf" >> /tmp/server_log.txt
-  sed -i 's/-o smtpd_sender_restrictions=/#-o smtpd_sender_restrictions=/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf" && echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf" >> /tmp/server_log.txt
-  sed -i 's/-o smtpd_recipient_restrictions=permit_mynetworks,reject/#-o smtpd_recipient_restrictions=permit_mynetworks,reject/g' /etc/postfix/master.cf >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf" && echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf" >> /tmp/server_log.txt
-  sed -i 's/-o mynetworks=127.0.0.0/#-o mynetworks=127.0.0.0/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf" && echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf" >> /tmp/server_log.txt
-  sed -i 's/-o strict_rfc821_envelopes=yes/#-o strict_rfc821_envelopes=yes/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf" && echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf" >> /tmp/server_log.txt
-  sed -i 's/-o receive_override_options=no_unknown_recipient_checks,no_header_body_checks/#-o receive_override_options=no_unknown_recipient_checks,no_header_body_checks/g' /etc/postfix/master.cf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf" && echo -e "[\033[31mX\033[0m] Error editing /etc/postfix/master.cf" >> /tmp/server_log.txt
+  sed -i 's/amavis unix - - - - 2 smtp/#amavis unix - - - - 2 smtp/g' /etc/postfix/master.cf >> $LOG 2>&1
+  sed -i 's/-o smtp_data_done_timeout=1200/#-o smtp_data_done_timeout=1200/g' /etc/postfix/master.cf >> $LOG 2>&1
+  sed -i 's/-o smtp_send_xforward_command=yes/#-o smtp_send_xforward_command=yes/g' /etc/postfix/master.cf >> $LOG 2>&1
+  sed -i 's/127.0.0.1:10025 inet n - - - - smtpd/#127.0.0.1:10025 inet n - - - - smtpd/g' /etc/postfix/master.cf >> $LOG 2>&1
+  sed -i 's/-o content_filter=/#-o content_filter=/g' /etc/postfix/master.cf >> $LOG 2>&1
+  sed -i 's/-o local_recipient_maps=/#-o local_recipient_maps=/g' /etc/postfix/master.cf >> $LOG 2>&1
+  sed -i 's/-o relay_recipient_maps=/#-o relay_recipient_maps=/g' /etc/postfix/master.cf >> $LOG 2>&1
+  sed -i 's/-o smtpd_restriction_classes=/#-o smtpd_restriction_classes=/g' /etc/postfix/master.cf >> $LOG 2>&1
+  sed -i 's/-o smtpd_client_restrictions=/#-o smtpd_client_restrictions=/g' /etc/postfix/master.cf >> $LOG 2>&1
+  sed -i 's/-o smtpd_helo_restrictions=/#-o smtpd_helo_restrictions=/g' /etc/postfix/master.cf >> $LOG 2>&1
+  sed -i 's/-o smtpd_sender_restrictions=/#-o smtpd_sender_restrictions=/g' /etc/postfix/master.cf >> $LOG 2>&1
+  sed -i 's/-o smtpd_recipient_restrictions=permit_mynetworks,reject/#-o smtpd_recipient_restrictions=permit_mynetworks,reject/g' /etc/postfix/master.cf >> $LOG 2>&1
+  sed -i 's/-o mynetworks=127.0.0.0/#-o mynetworks=127.0.0.0/g' /etc/postfix/master.cf >> $LOG 2>&1
+  sed -i 's/-o strict_rfc821_envelopes=yes/#-o strict_rfc821_envelopes=yes/g' /etc/postfix/master.cf >> $LOG 2>&1
+  sed -i 's/-o receive_override_options=no_unknown_recipient_checks,no_header_body_checks/#-o receive_override_options=no_unknown_recipient_checks,no_header_body_checks/g' /etc/postfix/master.cf >> $LOG 2>&1
   
   echo -e "[\033[33m*\033[0m] Stop amavis / clamav" && echo -e "[\033[33m*\033[0m] Stop amavis / clamav" >> /tmp/server_log.txt
-  /etc/init.d/amavis stop >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error running command /etc/init.d/amavis stop - Check log files" && echo -e "[\033[31mX\033[0m] Error running command /etc/init.d/amavis stop - Check log files" >> /tmp/server_log.txt
-  /etc/init.d/clamav-daemon stop >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error running command /etc/init.d/clamav-daemon stop - Check log files" && echo -e "[\033[31mX\033[0m] Error running /etc/init.d/clamav-daemon stop - Check log files" >> /tmp/server_log.txt
-  /etc/init.d/clamav-freshclam stop >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error running command /etc/init.d/clamav-freshclam stop - Check log files" && echo -e "[\033[31mX\033[0m] Error running command /etc/init.d/clamav-freshclam stop - Check log files" >> /tmp/server_log.txt
   
-  chkconfig --levels 235 amavis off >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error running command chkconfig --levels 235 amavis off - Check log files" && echo -e "[\033[31mX\033[0m] Error running command chkconfig --levels 235 amavis off - Check log files" >> /tmp/server_log.txt
-  chkconfig --levels 235 clamav-daemon off >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error running command chkconfig --levels 235 clamav-daemon off - Check log files" && echo -e "[\033[31mX\033[0m] Error running command chkconfig --levels 235 clamav-daemon off - Check log files" >> /tmp/server_log.txt
-  chkconfig --levels 235 clamav-freshclam off >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error running command chkconfig --levels 235 clamav-freshclam off - Check log files" && echo -e "[\033[31mX\033[0m] Error running chkconfig --levels 235 clamav-freshclam off - Check log files" >> /tmp/server_log.txt
-
+#   Check if exists
+  if [ -f /etc/init.d/amavis ]; 
+    then 
+    	/etc/init.d/amavis stop >> $LOG 2>&1
+  fi
+  
+ #   Check if exists
+ if [ -f /etc/init.d/clamav-daemon stop ]; 
+    then 
+  	/etc/init.d/clamav-daemon stop >> $LOG 2>&1
+  fi
+  
+#   Check if exists
+  if [ -f /etc/init.d/clamav-freshclam stop ]; 
+    then   
+  	/etc/init.d/clamav-freshclam stop >> $LOG 2>&1
+  fi
+  
+#   Check if exists
+  if [ -f /etc/init.d/clamav-freshclam stop ]; 
+    then   
+  	chkconfig --levels 235 amavis off >> $LOG 2>&1
+  fi
+  
+#   Check if exists
+  if [ -f /etc/init.d/clamav-freshclam stop ]; 
+    then   
+  	chkconfig --levels 235 clamav-daemon off >> $LOG 2>&1
+  fi
+  
+#   Check if exists
+  if [ -f /etc/init.d/clamav-freshclam stop ]; 
+    then   
+ 	chkconfig --levels 235 clamav-freshclam off >> $LOG 2>&1
+  fi
   
   # New ISP Config install looks for dovecot-sql.conf in a new location
-  ln -s /etc/dovecot/dovecot-sql.conf /etc/dovecot-sql.conf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error creating Dovecot shortcut (ln -s /etc/dovecot/dovecot-sql.conf /etc/dovecot-sql.conf)- Check log files" && echo -e "[\033[31mX\033[0m] Error creating Dovecot shortcut (ln -s /etc/dovecot/dovecot-sql.conf /etc/dovecot-sql.conf)- Check log files" >> /tmp/server_log.txt
-  ln -s /etc/dovecot/dovecot.conf /etc/dovecot.conf >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error creating Dovecot shortcut (ln -s /etc/dovecot/dovecot.conf /etc/dovecot.conf) - Check log files" && echo -e "[\033[31mX\033[0m] Error creating Dovecot shortcut (ln -s /etc/dovecot/dovecot.conf /etc/dovecot.conf)- Check log files" >> /tmp/server_log.txt
+  ln -s /etc/dovecot/dovecot-sql.conf /etc/dovecot-sql.conf >> $LOG 2>&1
+  ln -s /etc/dovecot/dovecot.conf /etc/dovecot.conf >> $LOG 2>&1
 
   echo -e "[\033[33m*\033[0m] Restart Postfix" && echo -e "[\033[33m*\033[0m] Restart Postfix" >> /tmp/server_log.txt
-  /etc/init.d/postfix restart >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error restarting Postfix" && echo -e "[\033[31mX\033[0m] Error restarting Postfix" >> /tmp/server_log.txt
+  /etc/init.d/postfix restart >> $LOG 2>&1
 }
 
   install_ISPconfig(){
   echo -e "[\033[33m*\033[0m] Downloading ISPConfig" && echo -e "[\033[33m*\033[0m] Downloading ISPConfig" >> /tmp/server_log.txt
   #ISPConfig
   cd /tmp
-  wget http://www.ispconfig.org/downloads/ISPConfig-3-stable.tar.gz >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error Downloading ISPConfig" && echo -e "[\033[31mX\033[0m] Error Downloading ISPConfig" >> /tmp/server_log.txt
-  tar xfz ISPConfig-3-stable.tar.gz >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-  cd ispconfig3_install/install/  >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+  wget http://www.ispconfig.org/downloads/ISPConfig-3-stable.tar.gz >> $LOG 2>&1
+  tar xfz ISPConfig-3-stable.tar.gz >> $LOG 2>&1
+  cd ispconfig3_install/install/  >> $LOG 2>&1
   
-#   mv /tmp/ispconfig3_install/install/install.php /tmp/ispconfig3_install/install/install.php.bak  >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-#   wget https://raw.githubusercontent.com/nicktrela/qv-server-install/master/perfectServer_ISPConfig_install.php  >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
-#   mv perfectServer_ISPConfig_install.php /tmp/ispconfig3_install/install/install.php  >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" && echo -e "[\033[31mX\033[0m] Set up encountered an error - Check Logs" >> /tmp/server_log.txt
+#   mv /tmp/ispconfig3_install/install/install.php /tmp/ispconfig3_install/install/install.php.bak  >> $LOG 2>&1
+#   wget https://raw.githubusercontent.com/nicktrela/qv-server-install/master/perfectServer_ISPConfig_install.php  >> $LOG 2>&1
+#   mv perfectServer_ISPConfig_install.php /tmp/ispconfig3_install/install/install.php  >> $LOG 2>&1
   
   echo -e "[\033[33m*\033[0m] Setting up ISPConfig" && echo -e "[\033[33m*\033[0m] Setting up ISPConfig" >> /tmp/server_log.txt
  
@@ -1000,7 +1050,7 @@ EOF
 
 
 
-  php install.php --autoinstall=autoinstall.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] Error Setting up ISPConfig (running command php install.php --autoinstall=autoinstall.conf.php)" && echo -e "[\033[31mX\033[0m] Error Setting up ISPConfig (running command php install.php --autoinstall=autoinstall.conf.php)" >> /tmp/server_log.txt
+  php install.php --autoinstall=autoinstall.php >> $LOG 2>&1
 }
 
 disable_fw
