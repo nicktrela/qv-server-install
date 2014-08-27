@@ -214,7 +214,7 @@ MySQLCreateFirewall(){
   E_BADARGS=65
   MYSQL=`which mysql`
 
-  Q1="INSERT INTO ${BTICK}dbispconfig${BTICK}.${BTICK}firewall${BTICK} (${BTICK}firewall_id${BTICK}, ${BTICK}sys_userid${BTICK}, ${BTICK}sys_groupid${BTICK}, ${BTICK}sys_perm_user${BTICK}, ${BTICK}sys_perm_group${BTICK}, ${BTICK}sys_perm_other${BTICK}, ${BTICK}server_id${BTICK}, ${BTICK}tcp_port${BTICK}, ${BTICK}udp_port${BTICK}, ${BTICK}active${BTICK}) VALUES ('2', '1', '1', 'riud', 'riud', '', '1', '20,21,22,25,53,80,110,143,443,587,993,995,3306,8080,8081,10000', '53,3306', 'y');
+  Q1="INSERT INTO ${BTICK}dbispconfig${BTICK}.${BTICK}firewall${BTICK} (${BTICK}firewall_id${BTICK}, ${BTICK}sys_userid${BTICK}, ${BTICK}sys_groupid${BTICK}, ${BTICK}sys_perm_user${BTICK}, ${BTICK}sys_perm_group${BTICK}, ${BTICK}sys_perm_other${BTICK}, ${BTICK}server_id${BTICK}, ${BTICK}tcp_port${BTICK}, ${BTICK}udp_port${BTICK}, ${BTICK}active${BTICK}) VALUES ('2', '1', '1', 'riud', 'riud', '', '1', '20,21,22,25,53,80,110,143,443,587,993,995,3306,8080,8081,10000', '53,3306', 'y');"
   SQL="${Q1}"
    
   $MYSQL -uroot -p$(cat /tmp/mysqlpw.conf) -e "$SQL"
@@ -494,7 +494,7 @@ install_python(){
 
 install_awstat() {
   echo -e "[\033[33m*\033[0m] Setting up Webalizer and AWStats" && echo -e "[\033[33m*\033[0m] Setting up Webalizer and AWStats" >> /tmp/server_log.txt
-  yum install webalizer awstats perl-DateTime-Format-HTTP perl-DateTime-Format-Builder -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error installing" && echo -e "[\033[31mX\033[0m] ($LINENO) Error installing" >> /tmp/server_log.txt
+  yum install webalizer awstats perl-DateTime-Format-HTTP perl-DateTime-Format-Builder -y >> $LOG 2>&1
 }
 
 install_jailkit() {
@@ -790,7 +790,7 @@ initialize_ISPConfig(){
   cat - > /tmp/credentials.conf <<EOF
 <style type="text/css">
 .tg  {border-collapse:collapse;border-spacing:0;border-color:#999;}
-.tg td{vertical-align: middle; text-align: center; font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:0px;overflow:hidden;word-break:normal;border-color:#999;color:#444;background-color:#F7FDFA;}
+.tg td{font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:0px;overflow:hidden;word-break:normal;border-color:#999;color:#444;background-color:#F7FDFA;}
 .tg th{font-family:Arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:0px;overflow:hidden;word-break:normal;border-color:#999;color:#fff;background-color:#26ADE4;}
 .tg .tg-vn4c{background-color:#D2E4FC}
 </style>
@@ -799,10 +799,6 @@ initialize_ISPConfig(){
 <col style="width: 255px">
 <col style="width: 302px">
 </colgroup>
-  <tr>
-    <td class="tg-vn4c">MySQL Root PW:</td>
-    <td class="tg-vn4c">$mysqlrootpw</td>
-  </tr>
   <tr>
     <td class="tg-z2zr">Control Panel Username:</td>
     <td class="tg-z2zr">$servername</td>
@@ -848,8 +844,8 @@ initialize_ISPConfig(){
     <td class="tg-z2zr">$mailPW</td>
   </tr>
   <tr>
-    <td class="tg-z2zr">Web Mail:</td>
-    <td class="tg-z2zr"><span style=""><a href="http://$hostname/webmail">Link</a></span></td>
+    <td class="tg-z2zr">Access webmail:</td>
+    <td class="tg-z2zr"><span style=""><a href="http://$hostname/webmail">$hostname/webmail</a></span></td>
   </tr>
 </table>
 EOF
@@ -923,7 +919,7 @@ send_install_report(){
   sed -ri "s/\[\X\]/<br><span id="failed">Error: <\/span>/g" /tmp/server_log.txt
   perl -pe 's/serverLog/`cat server_log.txt`/ge' -i /tmp/email-template.html
   perl -pe 's/install_credentials/`cat credentials.conf`/ge' -i /tmp/email-template.html
-  mail -s "$(echo -e "IMPORTANT! Save this email! $hostname was set up successfully.\nContent-Type: text/html")" nick@questavolta.com < /tmp/email-template.html
+  mail -s "$(echo -e "IMPORTANT! Save this email! $hostname was set up successfully.\nFrom: Questa Volta Support <support@questavolta.com>\nReply-to: support@questavolta.com\nContent-Type: text/html")" -b support@questavolta.com nick@questavolta.com < /tmp/email-template.html
   rm -rf /tmp/email-template.html
 }
 
