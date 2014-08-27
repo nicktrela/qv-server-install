@@ -47,10 +47,11 @@ servername=$(echo "$(hostname)" | sed 's/.idthq.com//g')
   
 echo "NOZEROCONF=yes" >> /etc/sysconfig/network
 
-
+install_nano(){
+  yum -y install nano >> $LOG 2>&1
+}
 
 # Configuration of repository for CentOS
-
 configure_repo() {
   yum -y install wget >> $LOG 2>&1
   
@@ -68,7 +69,7 @@ configure_repo() {
   #rpm --import http://rpms.famillecollet.com/RPM-GPG-KEY-remi >> $LOG 2>&1  || echo -e "[\033[31mX\033[0m] ($LINENO) Error import key remi"
   #rpm -ivh http://rpms.famillecollet.com/enterprise/remi-release-6.rpm >> $LOG 2>&1  || echo -e "[\033[31mX\033[0m] ($LINENO) Error installing rpm remi"
 
-  yum install yum-priorities -y >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] ($LINENO) Error installing yum-priorites" && echo -e "[\033[31mX\033[0m] ($LINENO) Error installing yum-priorites" >> /tmp/server_log.txt
+  yum install yum-priorities -y >> $LOG 2>&1
   awk 'NR== 2 { print "priority=10" } { print }' /etc/yum.repos.d/epel.repo > /tmp/epel.repo
   rm /etc/yum.repos.d/epel.repo -f >> $LOG 2>&1
   mv /tmp/epel.repo /etc/yum.repos.d >> $LOG 2>&1
@@ -139,7 +140,7 @@ install_atop_htop(){
 }
 install_mysql() {
   echo -e "[\033[33m*\033[0m] Installing MYSQL Server" && echo -e "[\033[33m*\033[0m] Installing MYSQL Server" >> /tmp/server_log.txt
-  yum install mysql mysql-server -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error installing MySQL" >> /tmp/server_log.txt
+  yum install mysql mysql-server -y >> $LOG 2>&1
   chkconfig --levels 235 mysqld on >> $LOG 2>&1
   /etc/init.d/mysqld start >> $LOG 2>&1
     
@@ -207,13 +208,25 @@ MySQLCreateDB(){
   $MYSQL -uroot -p$(cat /tmp/mysqlpw.conf) -e "$SQL"
 }
 
+MySQLCreateFirewall(){
+  BTICK='`'
+  EXPECTED_ARGS=0
+  E_BADARGS=65
+  MYSQL=`which mysql`
+
+  Q1="INSERT INTO ${BTICK}dbispconfig${BTICK}.${BTICK}firewall${BTICK} (${BTICK}firewall_id${BTICK}, ${BTICK}sys_userid${BTICK}, ${BTICK}sys_groupid${BTICK}, ${BTICK}sys_perm_user${BTICK}, ${BTICK}sys_perm_group${BTICK}, ${BTICK}sys_perm_other${BTICK}, ${BTICK}server_id${BTICK}, ${BTICK}tcp_port${BTICK}, ${BTICK}udp_port${BTICK}, ${BTICK}active${BTICK}) VALUES ('2', '1', '1', 'riud', 'riud', '', '1', '20,21,22,25,53,80,110,143,443,587,993,995,3306,8080,8081,10000', '53,3306', 'y');
+  SQL="${Q1}"
+   
+  $MYSQL -uroot -p$(cat /tmp/mysqlpw.conf) -e "$SQL"
+}
+
 MySQLCreateRemoteISPConfigUser(){
   BTICK='`'
   EXPECTED_ARGS=2
   E_BADARGS=65
   MYSQL=`which mysql`
   
-  Q1="INSERT INTO ${BTICK}dbispconfig${BTICK}.${BTICK}remote_user${BTICK} (${BTICK}remote_userid${BTICK}, ${BTICK}sys_userid${BTICK}, ${BTICK}sys_groupid${BTICK}, ${BTICK}sys_perm_user${BTICK}, ${BTICK}sys_perm_group${BTICK}, ${BTICK}sys_perm_other${BTICK}, ${BTICK}remote_username${BTICK}, ${BTICK}remote_password${BTICK}, ${BTICK}remote_functions${BTICK}) VALUES ('5', '1', '1', 'riud', 'riud', NULL, '$1', MD5('$2'), 'server_get,get_function_list,client_templates_get_all,server_get_serverid_by_ip,server_ip_get,server_ip_add,server_ip_update,server_ip_delete;admin_record_permissions;vm_openvz;mail_domain_get,mail_domain_add,mail_domain_update,mail_domain_delete,mail_domain_set_status,mail_domain_get_by_domain;mail_aliasdomain_get,mail_aliasdomain_add,mail_aliasdomain_update,mail_aliasdomain_delete;mail_mailinglist_get,mail_mailinglist_add,mail_mailinglist_update,mail_mailinglist_delete;mail_user_get,mail_user_add,mail_user_update,mail_user_delete;mail_alias_get,mail_alias_add,mail_alias_update,mail_alias_delete;mail_forward_get,mail_forward_add,mail_forward_update,mail_forward_delete;mail_catchall_get,mail_catchall_add,mail_catchall_update,mail_catchall_delete;mail_transport_get,mail_transport_add,mail_transport_update,mail_transport_delete;mail_relay_get,mail_relay_add,mail_relay_update,mail_relay_delete;mail_whitelist_get,mail_whitelist_add,mail_whitelist_update,mail_whitelist_delete;mail_blacklist_get,mail_blacklist_add,mail_blacklist_update,mail_blacklist_delete;mail_spamfilter_user_get,mail_spamfilter_user_add,mail_spamfilter_user_update,mail_spamfilter_user_delete;mail_policy_get,mail_policy_add,mail_policy_update,mail_policy_delete;mail_fetchmail_get,mail_fetchmail_add,mail_fetchmail_update,mail_fetchmail_delete;mail_spamfilter_whitelist_get,mail_spamfilter_whitelist_add,mail_spamfilter_whitelist_update,mail_spamfilter_whitelist_delete;mail_spamfilter_blacklist_get,mail_spamfilter_blacklist_add,mail_spamfilter_blacklist_update,mail_spamfilter_blacklist_delete;mail_user_filter_get,mail_user_filter_add,mail_user_filter_update,mail_user_filter_delete;mail_filter_get,mail_filter_add,mail_filter_update,mail_filter_delete;sites_cron_get,sites_cron_add,sites_cron_update,sites_cron_delete;sites_database_get,sites_database_add,sites_database_update,sites_database_delete, sites_database_get_all_by_user,sites_database_user_get,sites_database_user_add,sites_database_user_update,sites_database_user_delete, sites_database_user_get_all_by_user;sites_web_folder_get,sites_web_folder_add,sites_web_folder_update,sites_web_folder_delete,sites_web_folder_user_get,sites_web_folder_user_add,sites_web_folder_user_update,sites_web_folder_user_delete;sites_ftp_user_get,sites_ftp_user_server_get,sites_ftp_user_add,sites_ftp_user_update,sites_ftp_user_delete;sites_shell_user_get,sites_shell_user_add,sites_shell_user_update,sites_shell_user_delete;sites_web_domain_get,sites_web_domain_add,sites_web_domain_update,sites_web_domain_delete,sites_web_domain_set_status;sites_web_aliasdomain_get,sites_web_aliasdomain_add,sites_web_aliasdomain_update,sites_web_aliasdomain_delete;sites_web_subdomain_get,sites_web_subdomain_add,sites_web_subdomain_update,sites_web_subdomain_delete;dns_zone_get,dns_zone_get_id,dns_zone_add,dns_zone_update,dns_zone_delete,dns_zone_set_status,dns_templatezone_add;dns_a_get,dns_a_add,dns_a_update,dns_a_delete;dns_aaaa_get,dns_aaaa_add,dns_aaaa_update,dns_aaaa_delete;dns_alias_get,dns_alias_add,dns_alias_update,dns_alias_delete;dns_cname_get,dns_cname_add,dns_cname_update,dns_cname_delete;dns_hinfo_get,dns_hinfo_add,dns_hinfo_update,dns_hinfo_delete;dns_mx_get,dns_mx_add,dns_mx_update,dns_mx_delete;dns_ns_get,dns_ns_add,dns_ns_update,dns_ns_delete;dns_ptr_get,dns_ptr_add,dns_ptr_update,dns_ptr_delete;dns_rp_get,dns_rp_add,dns_rp_update,dns_rp_delete;dns_srv_get,dns_srv_add,dns_srv_update,dns_srv_delete;dns_txt_get,dns_txt_add,dns_txt_update,dns_txt_delete;client_get_all,client_get,client_add,client_update,client_delete,client_get_sites_by_user,client_get_by_username,client_change_password,client_get_id,client_delete_everything;domains_domain_get,domains_domain_add,domains_domain_delete,domains_get_all_by_user')"
+  Q1="INSERT INTO ${BTICK}dbispconfig${BTICK}.${BTICK}remote_user${BTICK} (${BTICK}remote_userid${BTICK}, ${BTICK}sys_userid${BTICK}, ${BTICK}sys_groupid${BTICK}, ${BTICK}sys_perm_user${BTICK}, ${BTICK}sys_perm_group${BTICK}, ${BTICK}sys_perm_other${BTICK}, ${BTICK}remote_username${BTICK}, ${BTICK}remote_password${BTICK}, ${BTICK}remote_functions${BTICK}) VALUES ('1', '1', '1', 'riud', 'riud', NULL, '$1', MD5('$2'), 'server_get,get_function_list,client_templates_get_all,server_get_serverid_by_ip,server_ip_get,server_ip_add,server_ip_update,server_ip_delete;admin_record_permissions;vm_openvz;mail_domain_get,mail_domain_add,mail_domain_update,mail_domain_delete,mail_domain_set_status,mail_domain_get_by_domain;mail_aliasdomain_get,mail_aliasdomain_add,mail_aliasdomain_update,mail_aliasdomain_delete;mail_mailinglist_get,mail_mailinglist_add,mail_mailinglist_update,mail_mailinglist_delete;mail_user_get,mail_user_add,mail_user_update,mail_user_delete;mail_alias_get,mail_alias_add,mail_alias_update,mail_alias_delete;mail_forward_get,mail_forward_add,mail_forward_update,mail_forward_delete;mail_catchall_get,mail_catchall_add,mail_catchall_update,mail_catchall_delete;mail_transport_get,mail_transport_add,mail_transport_update,mail_transport_delete;mail_relay_get,mail_relay_add,mail_relay_update,mail_relay_delete;mail_whitelist_get,mail_whitelist_add,mail_whitelist_update,mail_whitelist_delete;mail_blacklist_get,mail_blacklist_add,mail_blacklist_update,mail_blacklist_delete;mail_spamfilter_user_get,mail_spamfilter_user_add,mail_spamfilter_user_update,mail_spamfilter_user_delete;mail_policy_get,mail_policy_add,mail_policy_update,mail_policy_delete;mail_fetchmail_get,mail_fetchmail_add,mail_fetchmail_update,mail_fetchmail_delete;mail_spamfilter_whitelist_get,mail_spamfilter_whitelist_add,mail_spamfilter_whitelist_update,mail_spamfilter_whitelist_delete;mail_spamfilter_blacklist_get,mail_spamfilter_blacklist_add,mail_spamfilter_blacklist_update,mail_spamfilter_blacklist_delete;mail_user_filter_get,mail_user_filter_add,mail_user_filter_update,mail_user_filter_delete;mail_filter_get,mail_filter_add,mail_filter_update,mail_filter_delete;sites_cron_get,sites_cron_add,sites_cron_update,sites_cron_delete;sites_database_get,sites_database_add,sites_database_update,sites_database_delete, sites_database_get_all_by_user,sites_database_user_get,sites_database_user_add,sites_database_user_update,sites_database_user_delete, sites_database_user_get_all_by_user;sites_web_folder_get,sites_web_folder_add,sites_web_folder_update,sites_web_folder_delete,sites_web_folder_user_get,sites_web_folder_user_add,sites_web_folder_user_update,sites_web_folder_user_delete;sites_ftp_user_get,sites_ftp_user_server_get,sites_ftp_user_add,sites_ftp_user_update,sites_ftp_user_delete;sites_shell_user_get,sites_shell_user_add,sites_shell_user_update,sites_shell_user_delete;sites_web_domain_get,sites_web_domain_add,sites_web_domain_update,sites_web_domain_delete,sites_web_domain_set_status;sites_web_aliasdomain_get,sites_web_aliasdomain_add,sites_web_aliasdomain_update,sites_web_aliasdomain_delete;sites_web_subdomain_get,sites_web_subdomain_add,sites_web_subdomain_update,sites_web_subdomain_delete;dns_zone_get,dns_zone_get_id,dns_zone_add,dns_zone_update,dns_zone_delete,dns_zone_set_status,dns_templatezone_add;dns_a_get,dns_a_add,dns_a_update,dns_a_delete;dns_aaaa_get,dns_aaaa_add,dns_aaaa_update,dns_aaaa_delete;dns_alias_get,dns_alias_add,dns_alias_update,dns_alias_delete;dns_cname_get,dns_cname_add,dns_cname_update,dns_cname_delete;dns_hinfo_get,dns_hinfo_add,dns_hinfo_update,dns_hinfo_delete;dns_mx_get,dns_mx_add,dns_mx_update,dns_mx_delete;dns_ns_get,dns_ns_add,dns_ns_update,dns_ns_delete;dns_ptr_get,dns_ptr_add,dns_ptr_update,dns_ptr_delete;dns_rp_get,dns_rp_add,dns_rp_update,dns_rp_delete;dns_srv_get,dns_srv_add,dns_srv_update,dns_srv_delete;dns_txt_get,dns_txt_add,dns_txt_update,dns_txt_delete;client_get_all,client_get,client_add,client_update,client_delete,client_get_sites_by_user,client_get_by_username,client_change_password,client_get_id,client_delete_everything;domains_domain_get,domains_domain_add,domains_domain_delete,domains_get_all_by_user')"
   SQL="${Q1}"
  
   if [ $# -ne $EXPECTED_ARGS ]
@@ -270,7 +283,7 @@ install_getmail() {
 
 install_modphp(){
   echo -e "[\033[33m*\033[0m] Installing Apache2 With mod_php, mod_fcgi/PHP5, And suPHP" && echo -e "[\033[33m*\033[0m] Installing Apache2 With mod_php, mod_fcgi/PHP5, And suPHP" >> /tmp/server_log.txt
-  yum install php php-devel php-gd php-imap php-ldap php-mysql php-odbc php-pear php-xml php-xmlrpc php-pecl-apc php-mbstring php-mcrypt php-mssql php-snmp php-soap php-tidy curl curl-devel perl-libwww-perl ImageMagick libxml2 libxml2-devel mod_fcgid php-cli httpd-devel -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error installing" && echo -e "[\033[31mX\033[0m] ($LINENO) Error installing" >> /tmp/server_log.txt
+  yum install php php-devel php-gd php-imap php-ldap php-mysql php-odbc php-pear php-xml php-xmlrpc php-pecl-apc php-mbstring php-mcrypt php-mssql php-snmp php-soap php-tidy curl curl-devel perl-libwww-perl ImageMagick libxml2 libxml2-devel mod_fcgid php-cli httpd-devel -y >> $LOG 2>&1
   sed -i 's/; cgi.fix_pathinfo=1/cgi.fix_pathinfo=1/' /etc/php.ini >> $LOG 2>&1
   sed -i 's/;cgi.fix_pathinfo=1/cgi.fix_pathinfo=1/' /etc/php.ini >> $LOG 2>&1 
   sed -i 's/error_reporting = E_ALL \&\ ~E_DEPRECATED/error_reporting = E_ALL \&\ ~E_NOTICE/' /etc/php.ini >> $LOG 2>&1
@@ -409,10 +422,10 @@ EOF
 
 install_ftpd() {
   echo -e "[\033[33m*\033[0m] Installing PureFTPD" && echo -e "[\033[33m*\033[0m] Installing PureFTPD" >> /tmp/server_log.txt
-  yum install pure-ftpd -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error installing" && echo -e "[\033[31mX\033[0m] ($LINENO) Error installing" >> /tmp/server_log.txt
+  yum install pure-ftpd -y >> $LOG 2>&1
   chkconfig --levels 235 pure-ftpd on >> $LOG 2>&1
   /etc/init.d/pure-ftpd start >> $LOG 2>&1
-  yum install openssl -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error installing" && echo -e "[\033[31mX\033[0m] ($LINENO) Error installing" >> /tmp/server_log.txt
+  yum install openssl -y >> $LOG 2>&1
   sed -i 's/# TLS                      1/TLS    1/' /etc/pure-ftpd/pure-ftpd.conf >> $LOG 2>&1
   echo -e "[\033[33m*\033[0m] Generating PureFTP SSL Certificate" && echo -e "[\033[33m*\033[0m] Generating PureFTP SSL Certificate" >> /tmp/server_log.txt
   mkdir -p /etc/ssl/private/ >> $LOG 2>&1
@@ -472,7 +485,7 @@ EOF
 
 install_python(){
   echo -e "[\033[33m*\033[0m] Installing Python..." && echo -e "[\033[33m*\033[0m] Installing Python..." >> /tmp/server_log.txt
-  yum install mod_python -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error installing" && echo -e "[\033[31mX\033[0m] ($LINENO) Error installing" >> /tmp/server_log.txt
+  yum install mod_python -y >> $LOG 2>&1
   echo -e "[\033[33m*\033[0m] Restarting Apache" && echo -e "[\033[33m*\033[0m] Restarting Apache" >> /tmp/server_log.txt
   /etc/init.d/httpd restart >> $LOG 2>&1
 }
@@ -522,17 +535,17 @@ install_roundcube(){
   wget http://jaist.dl.sourceforge.net/project/roundcubemail/roundcubemail/1.0.0/roundcube-framework-1.0.0.tar.gz >> $LOG 2>&1
   tar -zxvf roundcube-framework-1.0.0.tar.gz >> $LOG 2>&1
 
-  mkdir /usr/share/roundcube/installer/Roundcube >> $LOG 2>&1
+  mkdir /usr/share/webmail/installer/Roundcube >> $LOG 2>&1
   cp /usr/share/webmail/roundcube-framework-1.0.0/bootstrap.php /usr/share/webmail/installer/Roundcube >> $LOG 2>&1
 
-  chown root:root -R /usr/share/roundcube  >> $LOG 2>&1
-  chmod 777 -R /usr/share/roundcube/temp/ >> $LOG 2>&1
-  chmod 777 -R /usr/share/roundcube/logs/ >> $LOG 2>&1
+  chown root:root -R /usr/share/webmail  >> $LOG 2>&1
+  chmod 777 -R /usr/share/webmail/temp/ >> $LOG 2>&1
+  chmod 777 -R /usr/share/webmail/logs/ >> $LOG 2>&1
 
   cp /etc/httpd/conf/sites-enabled/000-ispconfig.conf /etc/httpd/conf/sites-enabled/000-ispconfig.conf.bak >> $LOG 2>&1
 
   cat <<EOF >> /etc/httpd/conf/sites-enabled/000-ispconfig.conf
-  <Directory /usr/share/roundcube>
+  <Directory /usr/share/webmail>
     Order allow,deny
     Allow from all
   </Directory>
@@ -543,19 +556,19 @@ EOF
   # Roundcube is a webmail package written in PHP.
   #
 
-  Alias /roundcube /usr/share/roundcube
+  Alias /webmail /usr/share/webmail
 
-  <Directory /usr/share/roundcube/config>
+  <Directory /usr/share/webmail/config>
     Order Deny,Allow
     Deny from All
   </Directory>
 
-  <Directory /usr/share/roundcube/temp>
+  <Directory /usr/share/webmail/temp>
     Order Deny,Allow
     Deny from All
   </Directory>
  
-  <Directory /usr/share/roundcube/logs>
+  <Directory /usr/share/webmail/logs>
     Order Deny,Allow
     Deny from All
   </Directory>
@@ -563,7 +576,7 @@ EOF
   # this section makes Roundcube use https connections only, for this you
   # need to have mod_ssl installed. If you want to use unsecure http 
   # connections, just remove this section:
-  <Directory /usr/share/roundcube>
+  <Directory /usr/share/webmail>
     RewriteEngine  on
     RewriteCond    %{HTTPS} !=on
     RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}
@@ -573,13 +586,13 @@ EOF
   echo -e "[\033[33m*\033[0m] Restarting Apache" && echo -e "[\033[33m*\033[0m] restarting Apache" >> /tmp/server_log.txt
   service httpd restart >> $LOG 2>&1
   
-  yum -y install libicu-devel >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] ($LINENO) Error installing libicu-devel" && echo -e "[\033[31mX\033[0m] ($LINENO) Error installing libicu-devel" >> /tmp/server_log.txt
-  yum -y install php-intl >> $LOG 2>&1 || echo -e "[\033[31mX\033[0m] ($LINENO) Error installing php-intl" && echo -e "[\033[31mX\033[0m] ($LINENO) Error installing php-intl" >> /tmp/server_log.txt
+  yum -y install libicu-devel >> $LOG 2>&1
+  yum -y install php-intl >> $LOG 2>&1
   
   cp /etc/php.ini /etc/php.ini.bak >> $LOG 2>&1
   
   sed -i 's#\;date\.timezone =#date.timezone = America/Los_Angeles#' /etc/php.ini >> $LOG 2>&1
-  sed -i 's#bc#/usr/share/roundcube/program/include/bc#' /usr/share/webmail/installer/index.php >> $LOG 2>&1
+  sed -i 's#bc#/usr/share/webmail/program/include/bc#' /usr/share/webmail/installer/index.php >> $LOG 2>&1
 
   echo -e "[\033[33m*\033[0m] Restarting Apache" && echo -e "[\033[33m*\033[0m] restarting Apache" >> /tmp/server_log.txt
   service httpd restart >> $LOG 2>&1
@@ -589,10 +602,10 @@ EOF
   dbName=roundcubedb
   
 #   create Roundcube DB
-  MySQLCreateDB $dbName $dbUser $dbPass  >> $LOG 2>&1
+  MySQLCreateDB $dbName $dbUser $dbPass >> $LOG 2>&1
   
 #   Initialize Roundcube DB
-  mysql -u $dbUser -p$dbPass -h localhost $dbName < /usr/share/webmail/SQL/mysql.initial.sql || echo -e "[\033[31mX\033[0m] ($LINENO) Error initializing Roundcube DB" && echo -e "[\033[31mX\033[0m] ($LINENO) Error initializing Roundcube DB" >> /tmp/server_log.txt
+  mysql -u $dbUser -p$dbPass -h localhost $dbName < /usr/share/webmail/SQL/mysql.initial.sql >> $LOG 2>&1
     
   smtpPass=$(pword)
 
@@ -664,9 +677,11 @@ initialize_ISPConfig(){
   RM_USER='admin'
   MySQLCreateRemoteISPConfigUser $RM_USER $RM_PASS
   
+  MySQLCreateFirewall
+  
 #   Modify remoting config
   sed -i "s/192.168.0.105/localhost/g" soap_config.php >> $LOG 2>&1
-  sed -i "s/password = 'admin/$RM_PASS/g" soap_config.php >> $LOG 2>&1
+  sed -i "s/password = 'admin/password = '$RM_PASS/g" soap_config.php >> $LOG 2>&1
   
 #   change cp password
 #   adminPass=$(pword)
@@ -720,12 +735,14 @@ initialize_ISPConfig(){
   dbUserPW=$(pword)
   sed -i "s/database_user' => 'db_name2/database_user' => '$siteDBuser/g" sites_database_user_add.php >> $LOG 2>&1
   sed -i "s/database_password' => 'db_name2/database_password' => '$dbUserPW/g" sites_database_user_add.php >> $LOG 2>&1
-  php sites_database_user_add.php >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error: Could not successfully add DB User to ISP Config" && echo -e "[\033[31mX\033[0m] ($LINENO) Error: Could not successfully add DB User to ISP Config" >> /tmp/server_log.txt
+  
+  php sites_database_user_add.php >> $LOG 2>&1
   
   DBuserID=1
   dbName='site_db'
   sed -i "s/db_name2/$dbName/g" sites_database_add.php >> $LOG 2>&1
   sed -i "s/database_user_id' => '1/database_user_id' => '$DBuserID/g" sites_database_add.php >> $LOG 2>&1
+  
   php sites_database_add.php >> $LOG 2>&1
 
 #   add ftp usr
@@ -750,88 +767,92 @@ initialize_ISPConfig(){
   
   php sites_shell_user_add.php >> $LOG 2>&1
   
-    cat - > /tmp/credentials.conf <<EOF
-  <br>
-  <table style="undefined;table-layout: fixed; width: 557px" class="mcnTextContent">
-  <colgroup>
-  <col style="width: 255px">
-  <col style="width: 302px">
-  </colgroup>
-    <tr>
-      <th></th>
-      <th></th>
-    </tr>
-    <tr>
-      <td>MySQL Root PW:</td>
-      <td>$mysqlrootpw</td>
-    </tr>
-    <tr>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>Control Panel Username:</td>
-      <td>$servername</td>
-    </tr>
-    <tr>
-      <td>Control Panel Password:</td>
-      <td>$clientPW</td>
-    </tr>
-    <tr>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>Database Name:</td>
-      <td>$dbName</td>
-    </tr>
-    <tr>
-      <td>Database Username:</td>
-      <td>$siteDBuser</td>
-    </tr>
-    <tr>
-      <td>Database Password:</td>
-      <td>$dbUserPW</td>
-    </tr>
-    <tr>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>FTP Username:</td>
-      <td>$ftpShellUsr</td>
-    </tr>
-    <tr>
-      <td>FTP Password:</td>
-      <td>$ftpShellPass</td>
-    </tr>
-    <tr>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>Shell Username:</td>
-      <td>$ftpShellUsr</td>
-    </tr>
-    <tr>
-      <td>Shell Password:</td>
-      <td>$ftpShellPass</td>
-    </tr>
-    <tr>
-      <td>Remote User UN:</td>
-      <td>$RM_USER</td>
-    </tr>
-    <tr>
-      <td>Remote User Password:</td>
-      <td>$RM_PASS</td>
-    </tr>
-     <tr>
-      <td>Admin CP Pass:</td>
-      <td>$adminPass</td>
-    </tr>
-  </table>
-EOF
+#   add mail domain
+
+  sed -i "s/test.int/$hostname/g" mail_domain_add.php >> $LOG 2>&1
   
+  php mail_domain_add.php >> $LOG 2>&1
+  
+#   add email usr
+  
+  mailPW=$(pword)
+  emailUsr='info'
+  
+  emailAddr=$emailUsr@$hostname
+  
+  sed -i "s/joe@test.int/$emailUsr\@$hostname/g" mail_user_add.php >> $LOG 2>&1
+  sed -i "s/howtoforge/$mailPW/g" mail_user_add.php >> $LOG 2>&1
+  sed -i "s/name' => 'joe/name' => '$servername/g" mail_user_add.php >> $LOG 2>&1
+  sed -i "s#maildir' => '/var/vmail/test.int/joe#maildir' => '/var/vmail/$hostname/$servername#g" mail_user_add.php >> $LOG 2>&1
+  
+  php mail_user_add.php >> $LOG 2>&1
+  
+  cat - > /tmp/credentials.conf <<EOF
+<style type="text/css">
+.tg  {border-collapse:collapse;border-spacing:0;border-color:#999;}
+.tg td{vertical-align: middle; text-align: center; font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:0px;overflow:hidden;word-break:normal;border-color:#999;color:#444;background-color:#F7FDFA;}
+.tg th{font-family:Arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:0px;overflow:hidden;word-break:normal;border-color:#999;color:#fff;background-color:#26ADE4;}
+.tg .tg-vn4c{background-color:#D2E4FC}
+</style>
+<table class="tg" style="undefined;table-layout: fixed; width: 90%; margin-left: auto; margin-right: auto;">
+<colgroup>
+<col style="width: 255px">
+<col style="width: 302px">
+</colgroup>
+  <tr>
+    <td class="tg-vn4c">MySQL Root PW:</td>
+    <td class="tg-vn4c">$mysqlrootpw</td>
+  </tr>
+  <tr>
+    <td class="tg-z2zr">Control Panel Username:</td>
+    <td class="tg-z2zr">$servername</td>
+  </tr>
+  <tr>
+    <td class="tg-z2zr">Control Panel Password:</td>
+    <td class="tg-z2zr">$clientPW</td>
+  </tr>
+  <tr>
+    <td class="tg-vn4c">Database Name:</td>
+    <td class="tg-vn4c">$dbName</td>
+  </tr>
+  <tr>
+    <td class="tg-vn4c">Database Username:</td>
+    <td class="tg-vn4c">$siteDBuser</td>
+  </tr>
+  <tr>
+    <td class="tg-vn4c">Database Password:</td>
+    <td class="tg-vn4c">$dbUserPW</td>
+  </tr>
+  <tr>
+    <td class="tg-z2zr">FTP Username:</td>
+    <td class="tg-z2zr">$ftpShellUsr</td>
+  </tr>
+  <tr>
+    <td class="tg-z2zr">FTP Password:</td>
+    <td class="tg-z2zr">$ftpShellPass</td>
+  </tr>
+  <tr>
+    <td class="tg-vn4c">Shell Username:</td>
+    <td class="tg-vn4c">$ftpShellUsr</td>
+  </tr>
+  <tr>
+    <td class="tg-vn4c">Shell Password:</td>
+    <td class="tg-vn4c">$ftpShellPass</td>
+  </tr>
+  <tr>
+    <td class="tg-z2zr">Email Address (also your username):</td>
+    <td class="tg-z2zr">$emailAddr</td>
+  </tr>
+  <tr>
+    <td class="tg-z2zr">Email Password:</td>
+    <td class="tg-z2zr">$mailPW</td>
+  </tr>
+  <tr>
+    <td class="tg-z2zr">Web Mail:</td>
+    <td class="tg-z2zr"><span style=""><a href="http://$hostname/webmail">Link</a></span></td>
+  </tr>
+</table>
+EOF
 }
 
 
@@ -858,12 +879,12 @@ install_squirrelmail(){
 
 install_cyrus(){
   echo -e "[\033[33m*\033[0m] Installing Cyrus" && echo -e "[\033[33m*\033[0m] Installing Cyrus" >> /tmp/server_log.txt
-  yum install cyrus-sasl* -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error installing Cyrus" && echo -e "[\033[31mX\033[0m] ($LINENO) Error installing Cyrus" >> /tmp/server_log.txt
-  yum install perl-DateTime-Format* -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error installing Cyrus" && echo -e "[\033[31mX\033[0m] ($LINENO) Error installing Cyrus" >> /tmp/server_log.txt
+  yum install cyrus-sasl* -y >> $LOG 2>&1
+  yum install perl-DateTime-Format* -y >> $LOG 2>&1
 }
 install_ruby(){
   echo -e "[\033[33m*\033[0m] Installing Ruby" && echo -e "[\033[33m*\033[0m] Installing Ruby" >> /tmp/server_log.txt
-  yum install httpd-devel ruby ruby-devel -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error installing Ruby" && echo -e "[\033[31mX\033[0m] ($LINENO) Error installing Ruby" >> /tmp/server_log.txt
+  yum install httpd-devel ruby ruby-devel -y >> $LOG 2>&1
   cd /tmp $LOG 2>&1
   wget http://fossies.org/unix/www/apache_httpd_modules/mod_ruby-1.3.0.tar.gz >> $LOG 2>&1
   tar zxvf mod_ruby-1.3.0.tar.gz >> $LOG 2>&1
@@ -896,7 +917,7 @@ install_unzip(){
 send_install_report(){
   wget -O /tmp/email-template.html https://raw.githubusercontent.com/nicktrela/qv-server-install/master/QV%20Email%20Template.html >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error downloading email template"
   cd /tmp
-  sed -i "s/{{hostname}}/$variable/g" /tmp/email-template.html >> $LOG 2>&1
+  sed -i "s/{{hostname}}/$hostname/g" /tmp/email-template.html >> $LOG 2>&1
   sed -ri "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g" /tmp/server_log.txt
   sed -ri "s/\[\*\]/<br><span style="color:green">Run: <\/span>/g" /tmp/server_log.txt
   sed -ri "s/\[\X\]/<br><span id="failed">Error: <\/span>/g" /tmp/server_log.txt
@@ -908,9 +929,9 @@ send_install_report(){
 
 install_locate(){
   echo -e "[\033[33m*\033[0m] Installing locate" && echo -e "[\033[33m*\033[0m] Installing locate" >> /tmp/server_log.txt
-  yum install mlocate -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error installing locate" && echo -e "[\033[31mX\033[0m] ($LINENO) Error installing locate" >> /tmp/server_log.txt
+  yum install mlocate -y >> $LOG 2>&1
   echo -e "[\033[33m*\033[0m] Updating db" >> /tmp/server_log.txt
-  updatedb ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error updating db" && echo -e "[\033[31mX\033[0m] ($LINENO) Error updating db" >> /tmp/server_log.txt
+  updatedb >> $LOG 2>&1
 }
 
 script_update_1(){
