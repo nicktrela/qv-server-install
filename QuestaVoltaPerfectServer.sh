@@ -47,10 +47,6 @@ servername=$(echo "$(hostname)" | sed 's/.idthq.com//g')
   
 echo "NOZEROCONF=yes" >> /etc/sysconfig/network
 
-install_nano(){
-  yum -y install nano >> $LOG 2>&1
-}
-
 # Configuration of repository for CentOS
 configure_repo() {
   yum -y install wget >> $LOG 2>&1
@@ -255,10 +251,23 @@ MySQLChangeCPAdminPass(){
  
   $MYSQL -uroot -p$(cat /tmp/mysqlpw.conf) -e "$SQL" >> $LOG 2>&1
 }
+MySQLAddIP(){
+  BTICK='`'
+  EXPECTED_ARGS=1
+  E_BADARGS=65
+  MYSQL=`which mysql`
 
-
-
-
+  Q1="INSERT INTO  `dbispconfig`.`server_ip` (`server_ip_id` ,`sys_userid` ,`sys_groupid` ,`sys_perm_user` ,`sys_perm_group` ,`sys_perm_other` ,`server_id` ,`client_id` ,`ip_type` ,`ip_address` ,`virtualhost` ,`virtualhost_port`)VALUES ('1',  '1',  '1',  'riud',  'riud',  '',  '1',  '1',  'IPv4',  '$1',  'y',  '80,443')"
+  SQL="${Q1}"
+  
+  if [ $# -ne $EXPECTED_ARGS ]
+  then
+    echo "Usage: $0 Args: ipAddress"
+    exit $E_BADARGS
+  fi
+  
+  $MYSQL -uroot -p$(cat /tmp/mysqlpw.conf) -e "$SQL" >> $LOG 2>&1
+}
 install_dovecot() {
   echo -e "[\033[33m*\033[0m] Installing DOVECOT Server" && echo -e "[\033[33m*\033[0m] Installing DOVECOT Server" >> /tmp/server_log.txt
   yum install dovecot dovecot-mysql -y >> $LOG 2>&1
@@ -300,40 +309,40 @@ install_modphp(){
   echo -e "[\033[33m*\033[0m] Adding suPHP to Apache Configuration" && echo -e "[\033[33m*\033[0m] Adding suPHP to Apache Configuration" >> /tmp/server_log.txt
   echo "LoadModule suphp_module modules/mod_suphp.so" > /etc/httpd/conf.d/suphp.conf
   cat <<EOF >> /etc/suphp.conf
-	[global]
-	;Path to logfile
-	logfile=/var/log/httpd/suphp.log
-	;Loglevel
-	loglevel=info
-	;User Apache is running as
-	webserver_user=apache
-	;Path all scripts have to be in
-	docroot=/
-	;Path to chroot() to before executing script
-	;chroot=/mychroot
-	; Security options
-	allow_file_group_writeable=true
-	allow_file_others_writeable=false
-	allow_directory_group_writeable=true
-	allow_directory_others_writeable=false
-	;Check wheter script is within DOCUMENT_ROOT
-	check_vhost_docroot=true
-	;Send minor error messages to browser
-	errors_to_browser=false
-	;PATH environment variable
-	env_path=/bin:/usr/bin
-	;Umask to set, specify in octal notation
-	umask=0077
-	; Minimum UID
-	min_uid=100
-	; Minimum GID
-	min_gid=100
-	
-	[handlers]
-	;Handler for php-scripts
-	x-httpd-suphp="php:/usr/bin/php-cgi"
-	;Handler for CGI-scripts
-	x-suphp-cgi="execute:!self"" > /etc/httpd/conf.d/suphp.confetc/suphp.conf
+[global]
+;Path to logfile
+logfile=/var/log/httpd/suphp.log
+;Loglevel
+loglevel=info
+;User Apache is running as
+webserver_user=apache
+;Path all scripts have to be in
+docroot=/
+;Path to chroot() to before executing script
+;chroot=/mychroot
+; Security options
+allow_file_group_writeable=true
+allow_file_others_writeable=false
+allow_directory_group_writeable=true
+allow_directory_others_writeable=false
+;Check wheter script is within DOCUMENT_ROOT
+check_vhost_docroot=true
+;Send minor error messages to browser
+errors_to_browser=false
+;PATH environment variable
+env_path=/bin:/usr/bin
+;Umask to set, specify in octal notation
+umask=0077
+; Minimum UID
+min_uid=100
+; Minimum GID
+min_gid=100
+
+[handlers]
+;Handler for php-scripts
+x-httpd-suphp="php:/usr/bin/php-cgi"
+;Handler for CGI-scripts
+x-suphp-cgi="execute:!self"" > /etc/httpd/conf.d/suphp.confetc/suphp.conf
 EOF
 
   echo -e "[\033[33m*\033[0m] Restarting Apache" && echo -e "[\033[33m*\033[0m] Restarting Apache" >> /tmp/server_log.txt
@@ -443,38 +452,37 @@ install_bind() {
   sed -re 'ROOTDIR=/var/named/chroot s/^#//' /etc/sysconfig/named >> $LOG 2>&1 # is this right??
   cp /etc/named.conf /etc/named.conf_bak >> $LOG 2>&1
   cat <<EOF > /etc/named.conf
-  //
-  // named.conf
-  //
-  // Provided by Red Hat bind package to configure the ISC BIND named(8) DNS
-  // server as a caching only nameserver (as a localhost DNS resolver only).
-  //
-  // See /usr/share/doc/bind*/sample/ for example named configuration files.
-  //
-  options {
-	  listen-on port 53 { any; };
-	  listen-on-v6 port 53 { any; };
-	  directory       "/var/named";
-	  dump-file       "/var/named/data/cache_dump.db";
-	  statistics-file "/var/named/data/named_stats.txt";
-	  memstatistics-file "/var/named/data/named_mem_stats.txt";
-	  allow-query     { any; };
-	  recursion no; 
-	  };
-  logging {
-	  channel default_debug {
-		  file "data/named.run";
-		  severity dynamic;
-	};
+//
+// named.conf
+//
+// Provided by Red Hat bind package to configure the ISC BIND named(8) DNS
+// server as a caching only nameserver (as a localhost DNS resolver only).
+//
+// See /usr/share/doc/bind*/sample/ for example named configuration files.
+//
+options {
+  listen-on port 53 { any; };
+  listen-on-v6 port 53 { any; };
+  directory       "/var/named";
+  dump-file       "/var/named/data/cache_dump.db";
+  statistics-file "/var/named/data/named_stats.txt";
+  memstatistics-file "/var/named/data/named_mem_stats.txt";
+  allow-query     { any; };
+  recursion no; 
   };
+logging {
+  channel default_debug {
+	  file "data/named.run";
+	  severity dynamic;
+};
+};
 
-  zone "." IN {
-	  type hint;
-	  file "named.ca";
-  };
+zone "." IN {
+  type hint;
+  file "named.ca";
+};
 
-  include "/etc/named.conf.local";
-
+include "/etc/named.conf.local";
 EOF
 
   touch /etc/named.conf.local >> $LOG 2>&1
@@ -552,35 +560,35 @@ install_roundcube(){
 EOF
 
   cat <<EOF > /etc/httpd/conf.d/roundcube.conf
-  #
-  # Roundcube is a webmail package written in PHP.
-  #
+#
+# Roundcube is a webmail package written in PHP.
+#
 
-  Alias /webmail /usr/share/webmail
+Alias /webmail /usr/share/webmail
 
-  <Directory /usr/share/webmail/config>
-    Order Deny,Allow
-    Deny from All
-  </Directory>
+<Directory /usr/share/webmail/config>
+  Order Deny,Allow
+  Deny from All
+</Directory>
 
-  <Directory /usr/share/webmail/temp>
-    Order Deny,Allow
-    Deny from All
-  </Directory>
+<Directory /usr/share/webmail/temp>
+  Order Deny,Allow
+  Deny from All
+</Directory>
  
-  <Directory /usr/share/webmail/logs>
-    Order Deny,Allow
-    Deny from All
-  </Directory>
+<Directory /usr/share/webmail/logs>
+  Order Deny,Allow
+  Deny from All
+</Directory>
 
-  # this section makes Roundcube use https connections only, for this you
-  # need to have mod_ssl installed. If you want to use unsecure http 
-  # connections, just remove this section:
-  <Directory /usr/share/webmail>
-    RewriteEngine  on
-    RewriteCond    %{HTTPS} !=on
-    RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}
-  </Directory>
+# this section makes Roundcube use https connections only, for this you
+# need to have mod_ssl installed. If you want to use unsecure http 
+# connections, just remove this section:
+<Directory /usr/share/webmail>
+  RewriteEngine  on
+  RewriteCond    %{HTTPS} !=on
+  RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}
+</Directory>
 EOF
 
   echo -e "[\033[33m*\033[0m] Restarting Apache" && echo -e "[\033[33m*\033[0m] restarting Apache" >> /tmp/server_log.txt
@@ -612,57 +620,57 @@ EOF
   config='$config'
   
   cat <<EOF > /usr/share/webmail/config/config.inc.php
-  <?php
+<?php
 
-  /* Local configuration for Roundcube Webmail */
+/* Local configuration for Roundcube Webmail */
 
-  // ----------------------------------
-  // SQL DATABASE
-  // ----------------------------------
-  // Database connection string (DSN) for read+write operations
-  // Format (compatible with PEAR MDB2): db_provider://user:password@host/database
-  // Currently supported db_providers: mysql, pgsql, sqlite, mssql or sqlsrv
-  // For examples see http://pear.php.net/manual/en/package.database.mdb2.intro-dsn.php
-  // NOTE: for SQLite use absolute path: 'sqlite:////full/path/to/sqlite.db?mode=0646'
-  $config['db_dsnw'] = 'mysql://$dbUser:$dbPass@localhost/$dbName';
+// ----------------------------------
+// SQL DATABASE
+// ----------------------------------
+// Database connection string (DSN) for read+write operations
+// Format (compatible with PEAR MDB2): db_provider://user:password@host/database
+// Currently supported db_providers: mysql, pgsql, sqlite, mssql or sqlsrv
+// For examples see http://pear.php.net/manual/en/package.database.mdb2.intro-dsn.php
+// NOTE: for SQLite use absolute path: 'sqlite:////full/path/to/sqlite.db?mode=0646'
+$config['db_dsnw'] = 'mysql://$dbUser:$dbPass@localhost/$dbName';
 
-  // ----------------------------------
-  // IMAP
-  // ----------------------------------
-  // The mail host chosen to perform the log-in.
-  // Leave blank to show a textbox at login, give a list of hosts
-  // to display a pulldown menu or set one host as string.
-  // To use SSL/TLS connection, enter hostname with prefix ssl:// or tls://
-  // Supported replacement variables:
-  // %n - hostname ($_SERVER['SERVER_NAME'])
-  // %t - hostname without the first part
-  // %d - domain (http hostname $_SERVER['HTTP_HOST'] without the first part)
-  // %s - domain name after the '@' from e-mail address provided at login screen
-  // For example %n = mail.domain.tld, %t = domain.tld
-  // WARNING: After hostname change update of mail_host column in users table is
-  //          required to match old user data records with the new host.
-  $config['default_host'] = 'localhost';
+// ----------------------------------
+// IMAP
+// ----------------------------------
+// The mail host chosen to perform the log-in.
+// Leave blank to show a textbox at login, give a list of hosts
+// to display a pulldown menu or set one host as string.
+// To use SSL/TLS connection, enter hostname with prefix ssl:// or tls://
+// Supported replacement variables:
+// %n - hostname ($_SERVER['SERVER_NAME'])
+// %t - hostname without the first part
+// %d - domain (http hostname $_SERVER['HTTP_HOST'] without the first part)
+// %s - domain name after the '@' from e-mail address provided at login screen
+// For example %n = mail.domain.tld, %t = domain.tld
+// WARNING: After hostname change update of mail_host column in users table is
+//          required to match old user data records with the new host.
+$config['default_host'] = 'localhost';
 
-  // provide an URL where a user can get support for this Roundcube installation
-  // PLEASE DO NOT LINK TO THE ROUNDCUBE.NET WEBSITE HERE!
-  $config['support_url'] = 'http://support.questavolta.com';
+// provide an URL where a user can get support for this Roundcube installation
+// PLEASE DO NOT LINK TO THE ROUNDCUBE.NET WEBSITE HERE!
+$config['support_url'] = 'http://support.questavolta.com';
 
-  // replace Roundcube logo with this image
-  // specify an URL relative to the document root of this Roundcube installation
-  // an array can be used to specify different logos for specific template files, '*' for default logo
-  // for example array("*" => "/images/roundcube_logo.png", "messageprint" => "/images/roundcube_logo_print.png")
-  $config['skin_logo'] = '/images/roundcube_logo.png';
+// replace Roundcube logo with this image
+// specify an URL relative to the document root of this Roundcube installation
+// an array can be used to specify different logos for specific template files, '*' for default logo
+// for example array("*" => "/images/roundcube_logo.png", "messageprint" => "/images/roundcube_logo_print.png")
+$config['skin_logo'] = '/images/roundcube_logo.png';
 
-  // this key is used to encrypt the users imap password which is stored
-  // in the session record (and the client cookie if remember password is enabled).
-  // please provide a string of exactly 24 chars.
-  $config['des_key'] = '$smtpPass';
+// this key is used to encrypt the users imap password which is stored
+// in the session record (and the client cookie if remember password is enabled).
+// please provide a string of exactly 24 chars.
+$config['des_key'] = '$smtpPass';
 
-  // ----------------------------------
-  // PLUGINS
-  // ----------------------------------
-  // List of active plugins (in plugins/ directory)
-  $config['plugins'] = array();
+// ----------------------------------
+// PLUGINS
+// ----------------------------------
+// List of active plugins (in plugins/ directory)
+$config['plugins'] = array();
 EOF
 }
 
@@ -672,12 +680,16 @@ initialize_ISPConfig(){
 # 	move to ISP Config remote API directory
   cd /tmp/ispconfig3_install/remoting_client/examples
   
+  ipAddress="$(curl ifconfig.me)" #   resolve ip address
+  
 #   Create remote user
   RM_PASS=$(pword)
   RM_USER='admin'
   MySQLCreateRemoteISPConfigUser $RM_USER $RM_PASS
   
   MySQLCreateFirewall
+  
+  MySQLAddIP $ipAddress
   
 #   Modify remoting config
   sed -i "s/192.168.0.105/localhost/g" soap_config.php >> $LOG 2>&1
@@ -689,11 +701,10 @@ initialize_ISPConfig(){
   MySQLChangeCPAdminPass $adminPass
 
 #   add client
-
   clientPW=$(pword)
   clientUN=$servername
-  sed -i "s/awesomecompany/$servername/g" client_add.php >> $LOG 2>&1
-  sed -i "s/name/$hostname/g" client_add.php >> $LOG 2>&1
+  sed -i "s/company_name' => 'awesomecompany/company_name' => '$servername/g" client_add.php >> $LOG 2>&1
+  sed -i "s/contact_name' => 'name/contact_name' => '$hostname/g" client_add.php >> $LOG 2>&1
   sed -i "s/fleetstreet//g" client_add.php >> $LOG 2>&1
   sed -i "s/21337//g" client_add.php >> $LOG 2>&1
   sed -i "s/london//g" client_add.php >> $LOG 2>&1
@@ -711,9 +722,8 @@ initialize_ISPConfig(){
   php client_add.php >> $LOG 2>&1
     
 #   add site
-  ipAddress="$(curl ifconfig.me)" #   resolve ip address
   sed -i "s/=> '\*'/=> '$ipAddress'/g" sites_web_domain_add.php >> $LOG 2>&1
-  sed -i "s/domain/$hostname/g" sites_web_domain_add.php >> $LOG 2>&1
+  sed -i "s/domain' => 'test2.int/domain' => '$hostname/g" sites_web_domain_add.php >> $LOG 2>&1
   sed -i "s/100000/-1/g" sites_web_domain_add.php >> $LOG 2>&1
   sed -i "s/cgi' => 'y'/cgi' => 'n'/g" sites_web_domain_add.php >> $LOG 2>&1
   sed -i "s/ssi' => 'y'/ssi' => 'n'/g" sites_web_domain_add.php >> $LOG 2>&1
@@ -768,13 +778,11 @@ initialize_ISPConfig(){
   php sites_shell_user_add.php >> $LOG 2>&1
   
 #   add mail domain
-
   sed -i "s/test.int/$hostname/g" mail_domain_add.php >> $LOG 2>&1
   
-  php mail_domain_add.php >> $LOG 2>&1
+#   php mail_domain_add.php >> $LOG 2>&1
   
 #   add email usr
-  
   mailPW=$(pword)
   emailUsr='info'
   
@@ -785,7 +793,7 @@ initialize_ISPConfig(){
   sed -i "s/name' => 'joe/name' => '$servername/g" mail_user_add.php >> $LOG 2>&1
   sed -i "s#maildir' => '/var/vmail/test.int/joe#maildir' => '/var/vmail/$hostname/$servername#g" mail_user_add.php >> $LOG 2>&1
   
-  php mail_user_add.php >> $LOG 2>&1
+#   php mail_user_add.php >> $LOG 2>&1
   
   cat - > /tmp/credentials.conf <<EOF
 <style type="text/css">
@@ -808,6 +816,10 @@ initialize_ISPConfig(){
     <td class="tg-z2zr">$clientPW</td>
   </tr>
   <tr>
+    <td class="tg-z2zr">Control Panel:</td>
+    <td class="tg-z2zr"><a href="https://$hostname:8080">https://$hostname:8080</a></td>
+  </tr>
+  <tr>
     <td class="tg-vn4c">Database Name:</td>
     <td class="tg-vn4c">$dbName</td>
   </tr>
@@ -826,26 +838,6 @@ initialize_ISPConfig(){
   <tr>
     <td class="tg-z2zr">FTP Password:</td>
     <td class="tg-z2zr">$ftpShellPass</td>
-  </tr>
-  <tr>
-    <td class="tg-vn4c">Shell Username:</td>
-    <td class="tg-vn4c">$ftpShellUsr</td>
-  </tr>
-  <tr>
-    <td class="tg-vn4c">Shell Password:</td>
-    <td class="tg-vn4c">$ftpShellPass</td>
-  </tr>
-  <tr>
-    <td class="tg-z2zr">Email Address (also your username):</td>
-    <td class="tg-z2zr">$emailAddr</td>
-  </tr>
-  <tr>
-    <td class="tg-z2zr">Email Password:</td>
-    <td class="tg-z2zr">$mailPW</td>
-  </tr>
-  <tr>
-    <td class="tg-z2zr">Access webmail:</td>
-    <td class="tg-z2zr"><span style=""><a href="http://$hostname/webmail">$hostname/webmail</a></span></td>
   </tr>
 </table>
 EOF
@@ -892,7 +884,6 @@ install_ruby(){
 cat <<EOF > /etc/httpd/conf.d/ruby.conf
   LoadModule ruby_module modules/mod_ruby.so
   RubyAddPath /1.8
-
 EOF
   echo -e "[\033[33m*\033[0m] Restarting Apache" && echo -e "[\033[33m*\033[0m] Restarting Apache" >> /tmp/server_log.txt
   /etc/init.d/httpd restart >> $LOG 2>&1
@@ -912,20 +903,24 @@ install_unzip(){
 
 send_install_report(){
   wget -O /tmp/email-template.html https://raw.githubusercontent.com/nicktrela/qv-server-install/master/QV%20Email%20Template.html >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error downloading email template"
+  wget -O /tmp/email-template.html https://raw.githubusercontent.com/nicktrela/qv-server-install/master/QV%20Email%20Template.html
+
   cd /tmp
   sed -i "s/{{hostname}}/$hostname/g" /tmp/email-template.html >> $LOG 2>&1
-  sed -ri "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g" /tmp/server_log.txt
-  sed -ri "s/\[\*\]/<br><span style="color:green">Run: <\/span>/g" /tmp/server_log.txt
-  sed -ri "s/\[\X\]/<br><span id="failed">Error: <\/span>/g" /tmp/server_log.txt
-  perl -pe 's/serverLog/`cat server_log.txt`/ge' -i /tmp/email-template.html
+#   sed -ri "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g" /tmp/server_log.txt
+#   sed -ri "s/\[\*\]/<br><span style="color:green">Run: <\/span>/g" /tmp/server_log.txt
+#   sed -ri "s/\[\X\]/<br><span id="failed">Error: <\/span>/g" /tmp/server_log.txt
+#   perl -pe 's/serverLog/`cat server_log.txt`/ge' -i /tmp/email-template.html
   perl -pe 's/install_credentials/`cat credentials.conf`/ge' -i /tmp/email-template.html
-  mail -s "$(echo -e "IMPORTANT! Save this email! $hostname was set up successfully.\nFrom: Questa Volta Support <support@questavolta.com>\nReply-to: support@questavolta.com\nContent-Type: text/html")" -b support@questavolta.com nick@questavolta.com < /tmp/email-template.html
-  rm -rf /tmp/email-template.html
+#   mail -s "$(echo -e "IMPORTANT! Save this email! $hostname was set up successfully.\nFrom: Questa Volta Support <support@questavolta.com>\nReply-to: support@questavolta.com\nContent-Type: text/html")" -b support@questavolta.com nick@questavolta.com < /tmp/email-template.html
+  mail -s "$(echo -e "IMPORTANT! Save this email! $hostname was set up successfully.\nFrom: Questa Volta Support <support@questavolta.com>\nReply-to: support@questavolta.com\nContent-Type: text/html")" nick@questavolta.com < /tmp/email-template.html
+#   rm -rf /tmp/email-template.html
 }
 
-install_locate(){
-  echo -e "[\033[33m*\033[0m] Installing locate" && echo -e "[\033[33m*\033[0m] Installing locate" >> /tmp/server_log.txt
+install_locate_nano(){
+  echo -e "[\033[33m*\033[0m] Installing locate and nano" && echo -e "[\033[33m*\033[0m] Installing locate and nano" >> /tmp/server_log.txt
   yum install mlocate -y >> $LOG 2>&1
+  yum -y install nano >> $LOG 2>&1
   echo -e "[\033[33m*\033[0m] Updating db" >> /tmp/server_log.txt
   updatedb >> $LOG 2>&1
 }
@@ -960,6 +955,12 @@ script_update_2(){
   sed -i 's/hash:\/etc\/mailman\/virtual-mailman, //g' /etc/postfix/main.cf >> $LOG 2>&1
   sed -i 's/content_filter = amavis/#content_filter = amavis/g' /etc/postfix/main.cf >> $LOG 2>&1
   sed -i 's/receive_override_options = no_address_mappings/#receive_override_options = no_address_mappings/g' /etc/postfix/main.cf >> $LOG 2>&1
+  sed -i 's/transport_maps = hash/#transport_maps = hash/g' /etc/postfix/main.cf >> $LOG 2>&1
+  cat <<EOF >> /etc/postfix/main.cf
+relayhost = 
+mailbox_size_limit = 0
+message_size_limit = 0
+EOF
 
   echo -e "[\033[33m*\033[0m] Disable clamav / amavis" >> /tmp/server_log.txt
   sed -i 's/amavis unix - - - - 2 smtp/#amavis unix - - - - 2 smtp/g' /etc/postfix/master.cf >> $LOG 2>&1
@@ -978,44 +979,18 @@ script_update_2(){
   sed -i 's/-o strict_rfc821_envelopes=yes/#-o strict_rfc821_envelopes=yes/g' /etc/postfix/master.cf >> $LOG 2>&1
   sed -i 's/-o receive_override_options=no_unknown_recipient_checks,no_header_body_checks/#-o receive_override_options=no_unknown_recipient_checks,no_header_body_checks/g' /etc/postfix/master.cf >> $LOG 2>&1
   
+  
+  
   echo -e "[\033[33m*\033[0m] Stop amavis / clamav" && echo -e "[\033[33m*\033[0m] Stop amavis / clamav" >> /tmp/server_log.txt
   
-#   Check if exists
-  if [ -f /etc/init.d/amavis ]; 
-    then 
-    	/etc/init.d/amavis stop >> $LOG 2>&1
-  fi
-  
- #   Check if exists
- if [ -f /etc/init.d/clamav-daemon stop ]; 
-    then 
+    /etc/init.d/amavis stop >> $LOG 2>&1
   	/etc/init.d/clamav-daemon stop >> $LOG 2>&1
-  fi
-  
-#   Check if exists
-  if [ -f /etc/init.d/clamav-freshclam stop ]; 
-    then   
   	/etc/init.d/clamav-freshclam stop >> $LOG 2>&1
-  fi
-  
-#   Check if exists
-  if [ -f /etc/init.d/clamav-freshclam stop ]; 
-    then   
+  	
   	chkconfig --levels 235 amavis off >> $LOG 2>&1
-  fi
-  
-#   Check if exists
-  if [ -f /etc/init.d/clamav-freshclam stop ]; 
-    then   
   	chkconfig --levels 235 clamav-daemon off >> $LOG 2>&1
-  fi
-  
-#   Check if exists
-  if [ -f /etc/init.d/clamav-freshclam stop ]; 
-    then   
  	chkconfig --levels 235 clamav-freshclam off >> $LOG 2>&1
-  fi
-  
+
   # New ISP Config install looks for dovecot-sql.conf in a new location
   ln -s /etc/dovecot/dovecot-sql.conf /etc/dovecot-sql.conf >> $LOG 2>&1
   ln -s /etc/dovecot/dovecot.conf /etc/dovecot.conf >> $LOG 2>&1
@@ -1070,6 +1045,7 @@ EOF
   php install.php --autoinstall=autoinstall.php >> $LOG 2>&1
 }
 
+install_nano
 disable_fw
 disable_selinux
 configure_repo
