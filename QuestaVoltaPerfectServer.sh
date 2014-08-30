@@ -1047,7 +1047,6 @@ EOF
   php install.php --autoinstall=autoinstall.php >> $LOG 2>&1
 }
 
-install_nano
 disable_fw
 disable_selinux
 configure_repo
@@ -1073,7 +1072,7 @@ install_cyrus
 install_bind
 configure_webdav
 # install_squirrelmail
-install_locate
+install_locate_nano
 script_update_1
 install_ISPconfig
 script_update_2
