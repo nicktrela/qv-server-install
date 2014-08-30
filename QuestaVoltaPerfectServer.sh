@@ -902,19 +902,21 @@ install_unzip(){
 }
 
 send_install_report(){
+  
   wget -O /tmp/email-template.html https://raw.githubusercontent.com/nicktrela/qv-server-install/master/QV%20Email%20Template.html >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error downloading email template"
   wget -O /tmp/email-template.html https://raw.githubusercontent.com/nicktrela/qv-server-install/master/QV%20Email%20Template.html
-
+  hostname="$(hostname)"
   cd /tmp
-  sed -i "s/{{hostname}}/$hostname/g" /tmp/email-template.html >> $LOG 2>&1
+#   sed -i "s/{{hostname}}/$hostname/" /tmp/email-template.html >> $LOG 2>&1
+  sed -i "s/{{hostname}}/$hostname/" /tmp/email-template.html
 #   sed -ri "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g" /tmp/server_log.txt
 #   sed -ri "s/\[\*\]/<br><span style="color:green">Run: <\/span>/g" /tmp/server_log.txt
 #   sed -ri "s/\[\X\]/<br><span id="failed">Error: <\/span>/g" /tmp/server_log.txt
 #   perl -pe 's/serverLog/`cat server_log.txt`/ge' -i /tmp/email-template.html
   perl -pe 's/install_credentials/`cat credentials.conf`/ge' -i /tmp/email-template.html
-#   mail -s "$(echo -e "IMPORTANT! Save this email! $hostname was set up successfully.\nFrom: Questa Volta Support <support@questavolta.com>\nReply-to: support@questavolta.com\nContent-Type: text/html")" -b support@questavolta.com nick@questavolta.com < /tmp/email-template.html
-  mail -s "$(echo -e "IMPORTANT! Save this email! $hostname was set up successfully.\nFrom: Questa Volta Support <support@questavolta.com>\nReply-to: support@questavolta.com\nContent-Type: text/html")" nick@questavolta.com < /tmp/email-template.html
-#   rm -rf /tmp/email-template.html
+  mail -s "$(echo -e "IMPORTANT! Save this email! $hostname was set up successfully.\nFrom: Questa Volta Support <support@questavolta.com>\Content-Type: text/html")" -b support@questavolta.com nick@questavolta.com < /tmp/email-template.html
+#   mail -s "$(echo -e "IMPORTANT! Save this email! \nFrom: Questa Volta Support <support@questavolta.com>\nContent-Type: text/html")" -b support@questavolta.com benl@sparepartslife.com < /tmp/email-template.html
+  rm -rf /tmp/email-template.html
 }
 
 install_locate_nano(){
