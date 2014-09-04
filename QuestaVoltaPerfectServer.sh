@@ -257,7 +257,7 @@ MySQLAddIP(){
   E_BADARGS=65
   MYSQL=`which mysql`
 
-  Q1="INSERT INTO  `dbispconfig`.`server_ip` (`server_ip_id` ,`sys_userid` ,`sys_groupid` ,`sys_perm_user` ,`sys_perm_group` ,`sys_perm_other` ,`server_id` ,`client_id` ,`ip_type` ,`ip_address` ,`virtualhost` ,`virtualhost_port`)VALUES ('1',  '1',  '1',  'riud',  'riud',  '',  '1',  '1',  'IPv4',  '$1',  'y',  '80,443')"
+  Q1="INSERT INTO  ${BTICK}dbispconfig${BTICK}.${BTICK}server_ip${BTICK} (${BTICK}server_ip_id${BTICK} ,${BTICK}sys_userid${BTICK} ,${BTICK}sys_groupid${BTICK} ,${BTICK}sys_perm_user${BTICK} ,${BTICK}sys_perm_group${BTICK} ,${BTICK}sys_perm_other${BTICK} ,${BTICK}server_id${BTICK} ,${BTICK}client_id${BTICK} ,${BTICK}ip_type${BTICK} ,${BTICK}ip_address${BTICK} ,${BTICK}virtualhost${BTICK} ,${BTICK}virtualhost_port${BTICK})VALUES ('1',  '1',  '1',  'riud',  'riud',  '',  '1',  '1',  'IPv4',  '$1',  'y',  '80,443')"
   SQL="${Q1}"
   
   if [ $# -ne $EXPECTED_ARGS ]
@@ -914,7 +914,7 @@ send_install_report(){
 #   sed -ri "s/\[\X\]/<br><span id="failed">Error: <\/span>/g" /tmp/server_log.txt
 #   perl -pe 's/serverLog/`cat server_log.txt`/ge' -i /tmp/email-template.html
   perl -pe 's/install_credentials/`cat credentials.conf`/ge' -i /tmp/email-template.html
-  mail -s "$(echo -e "IMPORTANT! Save this email! $hostname was set up successfully.\nFrom: Questa Volta Support <support@questavolta.com>\Content-Type: text/html")" -b support@questavolta.com nick@questavolta.com < /tmp/email-template.html
+  mail -s "$(echo -e "IMPORTANT! Save this email! $hostname was set up successfully.\nFrom: Questa Volta Support <support@questavolta.com>")" -b support@questavolta.com nick@questavolta.com < /tmp/email-template.html
 #   mail -s "$(echo -e "IMPORTANT! Save this email! \nFrom: Questa Volta Support <support@questavolta.com>\nContent-Type: text/html")" -b support@questavolta.com benl@sparepartslife.com < /tmp/email-template.html
   rm -rf /tmp/email-template.html
 }
