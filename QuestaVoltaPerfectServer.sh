@@ -694,6 +694,7 @@ initialize_ISPConfig(){
 #   Modify remoting config
   sed -i "s/192.168.0.105/localhost/g" soap_config.php >> $LOG 2>&1
   sed -i "s/password = 'admin/password = '$RM_PASS/g" soap_config.php >> $LOG 2>&1
+  sed -i "s#http://#https://#g" soap_config.php >> $LOG 2>&1
   
 #   change cp password
 #   adminPass=$(pword)
@@ -904,19 +905,14 @@ install_unzip(){
 send_install_report(){
   
   wget -O /tmp/email-template.html https://raw.githubusercontent.com/nicktrela/qv-server-install/master/QV%20Email%20Template.html >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error downloading email template"
-  wget -O /tmp/email-template.html https://raw.githubusercontent.com/nicktrela/qv-server-install/master/QV%20Email%20Template.html
   hostname="$(hostname)"
   cd /tmp
-#   sed -i "s/{{hostname}}/$hostname/" /tmp/email-template.html >> $LOG 2>&1
-  sed -i "s/{{hostname}}/$hostname/" /tmp/email-template.html
-#   sed -ri "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g" /tmp/server_log.txt
-#   sed -ri "s/\[\*\]/<br><span style="color:green">Run: <\/span>/g" /tmp/server_log.txt
-#   sed -ri "s/\[\X\]/<br><span id="failed">Error: <\/span>/g" /tmp/server_log.txt
-#   perl -pe 's/serverLog/`cat server_log.txt`/ge' -i /tmp/email-template.html
+  sed -i "s/{{hostname}}/$hostname/" /tmp/email-template.html >> $LOG 2>&1
   perl -pe 's/install_credentials/`cat credentials.conf`/ge' -i /tmp/email-template.html
-  mail -s "$(echo -e "IMPORTANT! Save this email! $hostname was set up successfully.\nFrom: Questa Volta Support <support@questavolta.com>")" -b support@questavolta.com nick@questavolta.com < /tmp/email-template.html
-#   mail -s "$(echo -e "IMPORTANT! Save this email! \nFrom: Questa Volta Support <support@questavolta.com>\nContent-Type: text/html")" -b support@questavolta.com benl@sparepartslife.com < /tmp/email-template.html
+  mail -s "$(echo -e "Welcome to Questa Volta. Your server was successfully setup. \nFrom: Questa Volta Support <support@questavolta.com> \nContent-Type: text/html")" nick@questavolta.com < /tmp/email-template.html
   rm -rf /tmp/email-template.html
+  echo -e "[\033[33m*\033[0m] Installation confirmation email has been sent" && echo -e "[\033[33m*\033[0m] Installation confirmation email has been sent" >> /tmp/server_log.txt
+
 }
 
 install_locate_nano(){
