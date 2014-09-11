@@ -723,21 +723,98 @@ initialize_ISPConfig(){
   php client_add.php >> $LOG 2>&1
     
 #   add site
-  sed -i "s/=> '\*'/=> '$ipAddress'/g" sites_web_domain_add.php >> $LOG 2>&1
-  sed -i "s/domain' => 'test2.int/domain' => '$hostname/g" sites_web_domain_add.php >> $LOG 2>&1
-  sed -i "s/100000/-1/g" sites_web_domain_add.php >> $LOG 2>&1
-  sed -i "s/cgi' => 'y'/cgi' => 'n'/g" sites_web_domain_add.php >> $LOG 2>&1
-  sed -i "s/ssi' => 'y'/ssi' => 'n'/g" sites_web_domain_add.php >> $LOG 2>&1
-  sed -i "s/php' => 'y/php' => 'mod/g" sites_web_domain_add.php >> $LOG 2>&1
-  sed -i "s/ssl_state' => '/ssl_state' => 'CA/g" sites_web_domain_add.php >> $LOG 2>&1
-  sed -i "s/ssl_locality' => '/ssl_locality' => 'Los Angeles/g" sites_web_domain_add.php >> $LOG 2>&1
-  sed -i "s/ssl_organisation' => '/ssl_organisation' => '$servername/g" sites_web_domain_add.php >> $LOG 2>&1
-  sed -i "s/ssl_organisation_unit' => '/ssl_organisation_unit' => 'Web/g" sites_web_domain_add.php >> $LOG 2>&1
-  sed -i "s/ssl_country' => '/ssl_country' => 'US/g" sites_web_domain_add.php >> $LOG 2>&1
-  sed -i "s/ssl_domain' => '/ssl_domain' => '$hostname/g" sites_web_domain_add.php >> $LOG 2>&1
-  sed -i "s/ssl_action' => '/ssl_action' => 'create/g" sites_web_domain_add.php >> $LOG 2>&1
 
-  php sites_web_domain_add.php >> $LOG 2>&1
+  cat - > sites_web_domain_add_new.php <<'EOF'
+<?php
+
+require 'soap_config.php';
+
+
+$client = new SoapClient(null, array('location' => $soap_location,
+		'uri'      => $soap_uri,
+		'trace' => 1,
+		'exceptions' => 1));
+
+
+try {
+	if($session_id = $client->login($username, $password)) {
+		echo 'Logged successful. Session ID:'.$session_id.'<br />';
+	}
+
+	//* Set the function parameters.
+	$client_id = 1;
+	$params_website = array('server_id' => 1,  
+                            'ip_address' => '*',  
+                            'domain' => '$hostname',  
+                            'type' => 'vhost',  
+                            'parent_domain_id' => '',  
+                            'vhost_type' => 'name',  
+                            'hd_quota' => -1,  
+                            'traffic_quota' => '-1',  
+                            'cgi' =>'n',  
+                            'ssi' =>'n',  
+                            'suexec' =>'y',  
+                            'errordocs' =>'1',  
+                            'subdomain' =>'none',  
+                            'ssl' =>'y',  
+                            'php' =>"mod",  
+                            'ruby' =>'n',  
+                            'active' =>'y',  
+                            'redirect_type' =>'no',  
+                            'redirect_path' =>'',  
+                            'ssl_state' =>'California',  
+                            'ssl_organisation' =>'Questa Volta',  
+                            'ssl_organisation_unit' =>'Web',  
+                            'ssl_country' =>'United States of America',  
+                            'ssl_domain' => '$hostname',  
+                            'ssl_request' =>'',  
+                            'ssl_cert' =>'',  
+                            'ssl_bundle' =>'',  
+                            'ssl_action' =>'create',    
+                            'stats_password' =>'',  
+                            'stats_type' =>'webalizer',  
+                            'backup_interval' =>'daily',  
+                            'backup_copies' =>'7',  
+                            'document_root' => '/var/www/clients/client'.$client_id.'/web'.$domain_id,
+                            'system_user' =>'web1',  
+                            'system_group' =>'client2',  
+                            'allow_override' =>'All',  
+			    			'pm' => 'dynamic',
+			    			'pm.min_spare_servers' => 1,
+		            		'pm.max_spare_servers' => 5,
+			    			'pm_process_idle_timeout' => 10,
+		 	    			'pm_max_requests' => 0,
+			    		    'pm.start_servers' => 2,
+                            'php_open_basedir' =>'/var/www/clients/client'.$client_id.'/web'.$domain_id.'/web:/var/www/clients/client'.$client_id.'/web'.$domain_id.'/tmp:/var/www/'.                            $myusername.'.remcycle.net/web:/srv/www/'.$myusername.'.remcycle.net/web:/usr/share/php5:/tmp:/usr/share/phpmyadmin:/etc/phpmyadmin:/var/lib/phpmyadmin',  
+                            'custom_php_ini' =>'',   
+                            'apache_directives' => '<Directory /> 
+                                        Options FollowSymLinks 
+                                        AllowOverride All 
+                                        Order allow,deny 
+                                        Allow from all 
+                                        </Directory>',  
+                            'client_group_id' =>$client_id +1 
+                            );  
+     
+    $website_id = $client->sites_web_domain_add($session_id, $client_id, $params_website);  
+	echo "Web Domain ID: ".$website_id."<br>";
+
+
+	if($client->logout($session_id)) {
+		echo 'Logged out.<br />';
+	}
+
+
+} catch (SoapFault $e) {
+	echo $client->__getLastResponse();
+	die('SOAP Error: '.$e->getMessage());
+}
+
+?>
+EOF
+  sed -i "s/hostname/$hostname/" sites_web_domain_add_new.php
+  
+  php sites_web_domain_add_new.php >> $LOG 2>&1
     
 #   add db
   sed -i "s/db_name2/site_db/g" sites_database_add.php >> $LOG 2>&1
@@ -894,7 +971,6 @@ configure_webdav(){
   sed -i -e "s,#\(#LoadModule auth_digest_module modules/mod_auth_digest.so\),\1,g" /etc/httpd/conf/httpd.conf >> $LOG 2>&1
   sed -i -e "s,#\(#LoadModule dav_module modules/mod_dav.so\),\1,g" /etc/httpd/conf/httpd.conf >> $LOG 2>&1
   sed -i -e "s,#\(#LoadModule dav_fs_module modules/mod_dav_fs.so\),\1,g" /etc/httpd/conf/httpd.conf >> $LOG 2>&1
-  
   }
 
 install_unzip(){
@@ -903,7 +979,6 @@ install_unzip(){
 }
 
 send_install_report(){
-  
   wget -O /tmp/email-template.html https://raw.githubusercontent.com/nicktrela/qv-server-install/master/QV%20Email%20Template.html >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error downloading email template"
   hostname="$(hostname)"
   cd /tmp
@@ -912,7 +987,6 @@ send_install_report(){
   mail -s "$(echo -e "Welcome to Questa Volta. Your server was successfully setup. \nFrom: Questa Volta Support <support@questavolta.com> \nContent-Type: text/html")" nick@questavolta.com < /tmp/email-template.html
   rm -rf /tmp/email-template.html
   echo -e "[\033[33m*\033[0m] Installation confirmation email has been sent" && echo -e "[\033[33m*\033[0m] Installation confirmation email has been sent" >> /tmp/server_log.txt
-
 }
 
 install_locate_nano(){
