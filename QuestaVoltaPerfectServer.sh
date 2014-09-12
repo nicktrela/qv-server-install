@@ -93,8 +93,7 @@ install_required_packages() {
 install_quota(){
   echo -e "[\033[33m*\033[0m] Installing and configuring Quota" && echo -e "[\033[33m*\033[0m] Installing and configuring Quota" >> /tmp/server_log.txt
   yum install quota -y >> $LOG 2>&1
-  sed -i '0,/ext4/s/ext4/ext4    defaults,usrjquota=aquota.user,grpjquota=aquota.group,jqfmt=vfsv0/' /etc/fstab >> $LOG 2>&1
-  sed -i "s/defaults,noatime//g" /etc/fstab >> $LOG 2>&1
+  sed -i "s#/dev/mapper/VolGroup-lv_root /                       ext4    defaults#/dev/mapper/VolGroup-lv_root /                       ext4    defaults,noatime,usrjquota=aquota.user,grpjquota=aquota.group,jqfmt=vfsv0#" /etc/fstab >> $LOG 2>&1
   touch /quota.user /quota.group
   chmod 600 /quota.*
   echo -e "[\033[33m*\033[0m] Remounting..." && echo -e "[\033[33m*\033[0m] Remounting..." >> /tmp/server_log.txt
@@ -745,7 +744,7 @@ try {
 	$client_id = 1;
 	$params_website = array('server_id' => 1,  
                             'ip_address' => '*',  
-                            'domain' => '$hostname',  
+                            'domain' => 'hostname',  
                             'type' => 'vhost',  
                             'parent_domain_id' => '',  
                             'vhost_type' => 'name',  
@@ -765,8 +764,8 @@ try {
                             'ssl_state' =>'California',  
                             'ssl_organisation' =>'Questa Volta',  
                             'ssl_organisation_unit' =>'Web',  
-                            'ssl_country' =>'United States of America',  
-                            'ssl_domain' => '$hostname',  
+                            'ssl_country' =>'United States',  
+                            'ssl_domain' => 'hostname',  
                             'ssl_request' =>'',  
                             'ssl_cert' =>'',  
                             'ssl_bundle' =>'',  
@@ -785,7 +784,7 @@ try {
 			    			'pm_process_idle_timeout' => 10,
 		 	    			'pm_max_requests' => 0,
 			    		    'pm.start_servers' => 2,
-                            'php_open_basedir' =>'/var/www/clients/client'.$client_id.'/web'.$domain_id.'/web:/var/www/clients/client'.$client_id.'/web'.$domain_id.'/tmp:/var/www/'.                            $myusername.'.remcycle.net/web:/srv/www/'.$myusername.'.remcycle.net/web:/usr/share/php5:/tmp:/usr/share/phpmyadmin:/etc/phpmyadmin:/var/lib/phpmyadmin',  
+                            'php_open_basedir' => '/var/www/clients/client'.$client_id.'/web'.$domain_id.'/web:/var/www/clients/client'.$client_id.'/web'.$domain_id.'/private:/var/www/clients/client'.$client_id.'/web'.$domain_id.'/tmp:/var/www/hostname/web:/srv/www/hostname/web:/usr/share/php5:/usr/share/php:/tmp:/usr/share/phpmyadmin:/etc/phpmyadmin:/var/lib/phpmyadmin',
                             'custom_php_ini' =>'',   
                             'apache_directives' => '<Directory /> 
                                         Options FollowSymLinks 
@@ -812,6 +811,7 @@ try {
 
 ?>
 EOF
+  
   sed -i "s/hostname/$hostname/" sites_web_domain_add_new.php
   
   php sites_web_domain_add_new.php >> $LOG 2>&1
@@ -919,28 +919,6 @@ EOF
   </tr>
 </table>
 EOF
-}
-
-
-
-install_squirrelmail(){
-  echo -e "[\033[33m*\033[0m] Installing SquirrelMail" && echo -e "[\033[33m*\033[0m] Installing SquirrelMail" >> /tmp/server_log.txt
-  yum install squirrelmail -y >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error installing SquirrelMail" && echo -e "[\033[31mX\033[0m] ($LINENO) Error installing SquirrelMail" >> /tmp/server_log.txt
-  echo -e "[\033[33m*\033[0m] Restarting Apache" && echo -e "[\033[33m*\033[0m] Restarting Apache" >> /tmp/server_log.txt
-  /etc/init.d/httpd restart >> $LOG 2>&1
-  sed -i '/$default_folder_prefix/d' /etc/squirrelmail/config_local.php
-
-  echo "Please configure SquirrelMail! Commands are as follows:"
-  echo "Command >> D"
-  echo "Command >> dovecot"
-  echo "Press enter..."
-  echo "Command >> S"
-  echo "Command >> Q"
-  echo "Ready to go?"
-  echo "Enter to continue..."
-  read ready
-  echo "Starting SquirrelMail Config:"
-  /usr/share/squirrelmail/config/conf.pl
 }
 
 install_cyrus(){
@@ -1141,12 +1119,11 @@ install_fail2ban
 install_cyrus
 install_bind
 configure_webdav
-# install_squirrelmail
 install_locate_nano
 script_update_1
 install_ISPconfig
 script_update_2
 initialize_ISPConfig
-install_roundcube
+#install_roundcube
 send_install_report
 
