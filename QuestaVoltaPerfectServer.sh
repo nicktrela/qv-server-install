@@ -834,7 +834,7 @@ EOF
   php sites_database_add.php >> $LOG 2>&1
 
 #   add ftp usr
-  ftpShellUsr=${servername}_com_${servername}  
+  ftpShellUsr=${servername}_com 	 
   ftpShellPass=$(pword)
   
   sed -i "s/threep/$ftpShellUsr/g" sites_ftp_user_add.php >> $LOG 2>&1
@@ -1056,10 +1056,6 @@ EOF
   wget http://www.ispconfig.org/downloads/ISPConfig-3-stable.tar.gz >> $LOG 2>&1
   tar xfz ISPConfig-3-stable.tar.gz >> $LOG 2>&1
   cd ispconfig3_install/install/  >> $LOG 2>&1
-  
-#   mv /tmp/ispconfig3_install/install/install.php /tmp/ispconfig3_install/install/install.php.bak  >> $LOG 2>&1
-#   wget https://raw.githubusercontent.com/nicktrela/qv-server-install/master/perfectServer_ISPConfig_install.php  >> $LOG 2>&1
-#   mv perfectServer_ISPConfig_install.php /tmp/ispconfig3_install/install/install.php  >> $LOG 2>&1
   
   echo -e "[\033[33m*\033[0m] Setting up ISPConfig" && echo -e "[\033[33m*\033[0m] Setting up ISPConfig" >> /tmp/server_log.txt
  
