@@ -31,11 +31,36 @@ echo ""
 # EOF
 
 echo -e "\033[31mThis script will set up a Questa Volta Optimized Web Server.\033[0m"
-# read areyousure
-# if [ $areyousure != "YES" ]
-# then exit 1
-# else echo -e "\033[31mStarting installation...\033[0m"
-# fi
+
+if [[ $1 ]]
+	then RECIP="$1,support@questavolta.com"
+	else RECIP="support@questavolta.com"
+fi
+
+if [[ $2 ]]
+	then CC_RECIP="-c $2"
+	else CC_RECIP=
+fi
+
+if [[ $3 ]]
+	then BCC_RECIP="-b $3"
+	else BCC_RECIP=
+fi
+
+if [[ ! $1 ]] || [[ ! $2 ]] || [[ ! $3 ]]
+	then echo -e "You haven't entered a recipient for the setup email. Continue? y/N"
+	read areyousure
+		if [ $areyousure != "y" ]
+		then exit 1
+		fi
+else
+	echo "The credential email will send to $1 and will be CC'd to $2 and BCC'd to $3. Is this correct? y/N"
+		read areyousure
+			if [ $areyousure != "y" ]
+			then exit 1
+			else echo -e "\033[31mStarting installation...\033[0m"
+		fi
+fi
 
 test "$(whoami)" != 'root' && (echo -e "\033[31mYou are using a non-privileged account. Please log in as root.\033[0m"; exit 1)
 
@@ -958,13 +983,20 @@ install_unzip(){
 }
 
 send_install_report(){
+  yum -y install mail
+  
   wget -O /tmp/email-template.html https://raw.githubusercontent.com/nicktrela/qv-server-install/master/QV%20Email%20Template.html >> $LOG 2>&1 ||  echo -e "[\033[31mX\033[0m] ($LINENO) Error downloading email template"
   hostname="$(hostname)"
   cd /tmp
   sed -i "s/{{hostname}}/$hostname/" /tmp/email-template.html >> $LOG 2>&1
-  perl -pe 's/install_credentials/`cat credentials.conf`/ge' -i /tmp/email-template.html
-  mail -s "$(echo -e "Welcome to Questa Volta. Your server was successfully setup. \nFrom: Questa Volta Support <support@questavolta.com> \nContent-Type: text/html")" nick@questavolta.com < /tmp/email-template.html
-  rm -rf /tmp/email-template.html
+  perl -pe 's/install_credentials/`cat credentials.conf`/ge' -i /tmp/email-template.html  
+
+  subject="$(echo -e "Welcome to Questa Volta. Your server was successfully setup. \nFrom: Questa Volta Support <support@questavolta.com> \nContent-Type: text/html")"
+
+  mailx -s "$subject" "$(echo -e "$CC_RECIP")" "$(echo -e "$BCC_RECIP")" "$RECIP" < /tmp/email-template.html
+  
+  echo "Email has been sent."  
+
   echo -e "[\033[33m*\033[0m] Installation confirmation email has been sent" && echo -e "[\033[33m*\033[0m] Installation confirmation email has been sent" >> /tmp/server_log.txt
 }
 
